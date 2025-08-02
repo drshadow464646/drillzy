@@ -1,7 +1,9 @@
 import { MetadataRoute } from 'next'
  
-export default function manifest(): MetadataRoute.Manifest {
-  return {
+export const dynamic = 'force-static'
+
+export function GET(): Response {
+  const manifest: MetadataRoute.Manifest = {
     name: 'Drillzy',
     short_name: 'Drillzy',
     description: 'Drillzy by Asto Eterna',
@@ -23,5 +25,11 @@ export default function manifest(): MetadataRoute.Manifest {
         purpose: 'any maskable',
       },
     ],
-  }
+  };
+
+  return new Response(JSON.stringify(manifest), {
+    headers: {
+      'Content-Type': 'application/manifest+json',
+    },
+  });
 }

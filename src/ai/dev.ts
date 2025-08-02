@@ -1,2 +1,2 @@
-// This file is intentionally left blank. 
-// Genkit AI flows require a server environment and are not compatible with Next.js static exports.
+// This file can be used for development-specific AI-related code.
+// For example, you might register development-only flows or tools here.

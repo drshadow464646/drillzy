@@ -8,6 +8,7 @@ import type { User } from '@supabase/supabase-js';
 import type { UserData, SkillHistoryItem, Category, SurveyAnswer } from '@/lib/types';
 import { getNewSkill } from '@/lib/skills';
 import { format, subDays } from 'date-fns';
+import { calculateSkillProfile } from '@/ai/flows/calculate-skill-profile';
 
 interface UserDataContextType {
   userData: UserData | null;
@@ -189,9 +190,8 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         return { success: false, error: 'User not authenticated.', category: null };
     }
     try {
-      // MOCK: Ignore survey answers and assign a random category.
-      const categories: Category[] = ['builder', 'creator', 'thinker', 'connector'];
-      const category = categories[Math.floor(Math.random() * categories.length)];
+      // Call the Genkit flow to get the category from the AI.
+      const { category } = await calculateSkillProfile(answers);
 
       const { error: profileError } = await supabase
         .from('profiles')

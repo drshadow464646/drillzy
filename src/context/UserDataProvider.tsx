@@ -94,7 +94,16 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
   }, [supabase]);
 
   useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (event === 'PASSWORD_RECOVERY') {
+        // The user has clicked the password recovery link.
+        // The session is now set, and we can guide them to a page
+        // where they can update their password.
+        router.push('/reset-password');
+        setIsLoading(false);
+        return;
+      }
+      
       const currentUser = session?.user;
       if (currentUser) {
         await fetchFullUserData(currentUser);
@@ -107,7 +116,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     return () => {
       subscription.unsubscribe();
     };
-  }, [supabase, fetchFullUserData]);
+  }, [supabase, fetchFullUserData, router]);
 
 
   useEffect(() => {
@@ -120,7 +129,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (isLoading) return;
 
-    const isAuthPage = pathname.startsWith('/login');
+    const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/reset-password');
     const isSurveyPage = pathname.startsWith('/survey');
     const isSplashPage = pathname === '/';
 

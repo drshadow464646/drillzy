@@ -1,0 +1,107 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 100%;
+    --foreground: 240 10% 3.9%;
+    --card: 0 0% 100%;
+    --card-foreground: 240 10% 3.9%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 240 10% 3.9%;
+    --primary: 221 83% 53%;
+    --primary-foreground: 210 40% 98%;
+    --secondary: 240 4.8% 95.9%;
+    --secondary-foreground: 240 5.9% 10%;
+    --muted: 240 4.8% 95.9%;
+    --muted-foreground: 240 3.8% 46.1%;
+    --accent: 330 85% 55%;
+    --accent-foreground: 330 100% 98%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 5.9% 90%;
+    --input: 240 5.9% 90%;
+    --ring: 221 83% 53%;
+    --chart-1: 221 83% 53%;
+    --chart-2: 330 85% 55%;
+    --chart-3: 173 58% 39%;
+    --chart-4: 43 74% 66%;
+    --chart-5: 27 87% 67%;
+    --radius: 0.75rem;
+  }
+  
+  /* Gradient Themes - Light Mode */
+  :root, :root[data-theme='moon'] {
+    --background-gradient-start: 210 40% 98%;
+    --background-gradient-end: 210 40% 91%;
+  }
+  :root[data-theme='sunset'] {
+    --background-gradient-start: 35 100% 95%;
+    --background-gradient-end: 330 100% 95%;
+  }
+  :root[data-theme='dawn'] {
+    --background-gradient-start: 50 100% 90%;
+    --background-gradient-end: 190 100% 90%;
+  }
+  
+  .dark {
+    --background: 224 71% 4%;
+    --foreground: 210 20% 90%;
+    --card: 240 5% 12%;
+    --card-foreground: 210 20% 90%;
+    --popover: 240 5.9% 10%;
+    --popover-foreground: 210 20% 90%;
+    --primary: 217 91% 60%;
+    --primary-foreground: 210 20% 98%;
+    --secondary: 240 3.7% 15.9%;
+    --secondary-foreground: 210 20% 90%;
+    --muted: 240 3.7% 15.9%;
+    --muted-foreground: 240 5% 64.9%;
+    --accent: 330 90% 65%;
+    --accent-foreground: 330 100% 98%;
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 98%;
+    --border: 240 4% 20%;
+    --input: 240 3.7% 15.9%;
+    --ring: 217 91% 60%;
+    --chart-1: 217 91% 60%;
+    --chart-2: 330 90% 65%;
+    --chart-3: 173 58% 45%;
+    --chart-4: 43 74% 70%;
+    --chart-5: 27 87% 72%;
+  }
+
+  /* Gradient Themes - Dark Mode */
+  .dark, .dark[data-theme='moon'] {
+    --background-gradient-start: 224 71% 4%;
+    --background-gradient-end: 240 20% 8%;
+  }
+  .dark[data-theme='sunset'] {
+    --background-gradient-start: 25 80% 15%;
+    --background-gradient-end: 300 50% 10%;
+  }
+  .dark[data-theme='dawn'] {
+    --background-gradient-start: 220 60% 15%;
+    --background-gradient-end: 260 50% 12%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply text-foreground;
+    font-family: var(--font-sans);
+    background-color: hsl(var(--background));
+    background-image: linear-gradient(160deg, hsl(var(--background-gradient-start)) 0%, hsl(var(--background-gradient-end)) 100%);
+    min-height: 100vh;
+  }
+  .font-serif {
+    font-family: var(--font-serif);
+  }
+  .font-mono {
+    font-family: var(--font-mono);
+  }
+}

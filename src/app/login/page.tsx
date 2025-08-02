@@ -20,13 +20,10 @@ function LoginContent() {
     const [email, setEmail] = useState('');
     const [password, setPassword] = useState('');
     const [message, setMessage] = useState(searchParams.get('message') || '');
-    const [authRedirectTo, setAuthRedirectTo] = useState('');
+    const [isNative, setIsNative] = useState(false);
 
     useEffect(() => {
-        const isNative = Capacitor.isNativePlatform();
-        const webCallback = `${window.location.origin}/home`;
-        const nativeCallback = 'drillzy://auth/callback';
-        setAuthRedirectTo(isNative ? nativeCallback : webCallback);
+        setIsNative(Capacitor.isNativePlatform());
     }, []);
 
     const handleLogin = async (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -50,16 +47,16 @@ function LoginContent() {
 
     const handleSignup = async (event: React.MouseEvent<HTMLButtonElement>) => {
         event.preventDefault();
-        if (!authRedirectTo) {
-            setMessage('Could not determine redirect URL. Please try again.');
-            return;
-        }
+
+        const signupRedirectTo = isNative 
+            ? 'drillzy://auth/callback'
+            : `${window.location.origin}/auth/callback`;
 
         const { error } = await supabase.auth.signUp({
             email,
             password,
             options: {
-                emailRedirectTo: authRedirectTo,
+                emailRedirectTo: signupRedirectTo,
                 data: { name },
             },
         });
@@ -77,18 +74,18 @@ function LoginContent() {
             setMessage('Please enter your email address to reset your password.');
             return;
         }
-        if (!authRedirectTo) {
-            setMessage('Could not determine redirect URL. Please try again.');
-            return;
-        }
+
+        const resetRedirectTo = isNative
+          ? 'drillzy://auth/callback' // Native apps handle this via deep links
+          : `${window.location.origin}/auth/callback`; // Web handles this via URL
 
         const { error } = await supabase.auth.resetPasswordForEmail(email, {
-            // This must be an authorized URL in your Supabase project settings
-            redirectTo: authRedirectTo,
+            redirectTo: resetRedirectTo,
         });
 
         if (error) {
-            setMessage(`Error: ${error.message}`);
+            console.error("Password Reset Error:", error);
+            setMessage(`Error: Could not send recovery email. Please ensure you have configured your SMTP settings in Supabase and the redirect URL is whitelisted.`);
         } else {
             setMessage('Password reset link sent! Please check your email.');
         }
@@ -163,7 +160,7 @@ function LoginContent() {
                                     <Label htmlFor="password-signup">Password</Label>
                                     <Input id="password-signup" name="password" type="password" required value={password} onChange={(e) => setPassword(e.target.value)} />
                                 </div>
-                                <Button onClick={handleSignup} className="w-full" disabled={!authRedirectTo}>Create Account</Button>
+                                <Button onClick={handleSignup} className="w-full">Create Account</Button>
                             </form>
                         </CardContent>
                     </Card>

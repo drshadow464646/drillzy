@@ -88,7 +88,7 @@ function LoginContent() {
         });
 
         if (error) {
-            if (error.message === 'Error sending mail') {
+            if (error.message.toLowerCase().includes('error sending')) {
                 setMessage('Error sending password reset email. This might be due to email provider configuration issues in your Supabase project. Please ensure that you have a custom SMTP provider configured and that the redirect URL is whitelisted in your Supabase project settings.');
             } else {
                 setMessage(`Error: ${error.message}`);

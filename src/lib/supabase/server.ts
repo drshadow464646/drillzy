@@ -4,11 +4,12 @@ import { cookies } from 'next/headers'
 export const createClient = () => {
   const cookieStore = cookies()
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+  // Note: NEXT_PUBLIC_ variables are not available in server-side code.
+  const supabaseUrl = process.env.SUPABASE_URL
+  const supabaseAnonKey = process.env.SUPABASE_ANON_KEY
 
   if (!supabaseUrl || !supabaseAnonKey) {
-    throw new Error('Missing Supabase URL or anonymous key. Make sure to set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your .env.local file.')
+    throw new Error('Missing Supabase URL or anonymous key. Make sure to set SUPABASE_URL and SUPABASE_ANON_KEY in your .env.local file.')
   }
 
   return createServerClient(

@@ -4,7 +4,7 @@
 import {revalidatePath} from 'next/cache';
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
-import {Capacitor} from '@capacitor/core';
+import { headers } from 'next/headers';
 
 export async function login(formData: FormData) {
   const supabase = createClient();
@@ -29,7 +29,7 @@ export async function signup(formData: FormData) {
   const name = formData.get('name') as string;
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
-  const origin = new Headers().get('origin');
+  const origin = headers().get('origin');
   
   const emailRedirectTo = `${origin}/auth/callback`;
 

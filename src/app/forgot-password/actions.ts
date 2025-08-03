@@ -3,11 +3,12 @@
 
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { headers } from 'next/headers';
 
 export async function requestPasswordReset(formData: FormData) {
   const supabase = createClient();
   const email = formData.get('email') as string;
-  const origin = new Headers().get('origin');
+  const origin = headers().get('origin');
 
   if (!email) {
     return { error: 'Please provide your email address.' };

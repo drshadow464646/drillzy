@@ -6,22 +6,8 @@ import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { login, signup } from './actions';
-import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-
-function LoginMessage() {
-    'use client';
-    const searchParams = useSearchParams();
-    const message = searchParams.get('message');
-
-    if (!message) return null;
-
-    return (
-        <p className="mt-4 p-4 bg-foreground/10 text-foreground text-center rounded-md">
-            {message}
-        </p>
-    );
-}
+import LoginMessage from './LoginMessage';
 
 export default function LoginPage() {
     return (

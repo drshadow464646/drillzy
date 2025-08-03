@@ -2,8 +2,6 @@
 import { createServerClient, type CookieOptions } from '@supabase/ssr'
 import { cookies } from 'next/headers'
 
-// This function is still needed for any client-side Supabase interactions,
-// like the UserDataProvider.
 export const createClient = () => {
   const cookieStore = cookies()
 

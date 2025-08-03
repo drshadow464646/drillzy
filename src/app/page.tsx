@@ -1,31 +1,46 @@
 
-import { createClient } from '@/lib/supabase/server';
-import { redirect } from 'next/navigation';
+"use client";
 
-export default async function SplashPage() {
-  const supabase = createClient();
+import { useEffect, useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
+import { createClient } from '@/lib/supabase/client';
+import { Loader2 } from 'lucide-react';
 
-  const {
-    data: { user },
-  } = await supabase.auth.getUser();
+export default function SplashPage() {
+  const router = useRouter();
+  const [loading, setLoading] = useState(true);
+  const supabase = useMemo(() => createClient(), []);
 
-  if (user) {
-    // Check if the user has completed the survey
-    const { data: profile } = await supabase
-      .from('profiles')
-      .select('category')
-      .eq('id', user.id)
-      .single();
+  useEffect(() => {
+    const checkUser = async () => {
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-    if (profile?.category) {
-      redirect('/home');
-    } else {
-      redirect('/survey');
-    }
-  } else {
-    redirect('/login');
-  }
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('category')
+          .eq('id', user.id)
+          .single();
 
-  // This part of the component will never be rendered due to the redirects
-  return null;
+        if (profile?.category) {
+          router.replace('/home');
+        } else {
+          router.replace('/survey');
+        }
+      } else {
+        router.replace('/login');
+      }
+    };
+
+    checkUser();
+  }, [router, supabase]);
+
+  return (
+    <div className="flex h-screen w-full flex-col items-center justify-center">
+        <Loader2 className="h-12 w-12 animate-spin text-primary" />
+        <p className="mt-4 text-muted-foreground">Loading...</p>
+    </div>
+  );
 }

@@ -1,12 +1,17 @@
 
+"use client";
+
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { login, signup, resetPassword } from './actions';
+import { useSearchParams } from 'next/navigation';
 
-export default function LoginPage({ searchParams }: { searchParams: { message: string } }) {
+export default function LoginPage() {
+    const searchParams = useSearchParams();
+    const message = searchParams.get('message');
 
     return (
         <div className="flex flex-col items-center justify-center min-h-screen p-4">
@@ -84,9 +89,9 @@ export default function LoginPage({ searchParams }: { searchParams: { message: s
                 </TabsContent>
             </Tabs>
 
-             {searchParams.message && (
+             {message && (
                 <p className="mt-4 p-4 bg-foreground/10 text-foreground text-center rounded-md">
-                    {searchParams.message}
+                    {message}
                 </p>
             )}
         </div>

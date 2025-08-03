@@ -4,13 +4,13 @@
 'use server';
 
 import {genkit} from 'genkit';
-// import {openRouter} from 'genkitx-openrouter';
+import {googleAI} from '@genkit-ai/google-ai';
 
 export const ai = genkit({
   plugins: [
-    // openRouter({
-    //   apiKey: process.env.OPENROUTER_API_KEY,
-    // }),
+    googleAI({
+      apiKey: process.env.GEMINI_API_KEY,
+    }),
   ],
   // Log to the console in a development environment.
   logSinks: [console.log],

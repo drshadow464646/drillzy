@@ -8,7 +8,7 @@
 'use server';
 
 import {ai} from '@/ai/genkit';
-import type {Category, SurveyAnswer} from '@/lib/types';
+import type {SurveyAnswer} from '@/lib/types';
 import {z} from 'zod';
 
 const ProfileAnalysisInputSchema = z.object({
@@ -35,17 +35,45 @@ export type ProfileAnalysisOutput = z.infer<
   typeof ProfileAnalysisOutputSchema
 >;
 
-// Define the exported function that the application will call.
-// This is now a placeholder that returns a random category.
+const profileAnalysisPrompt = ai.definePrompt({
+    name: 'profileAnalysisPrompt',
+    input: { schema: ProfileAnalysisInputSchema },
+    output: { schema: ProfileAnalysisOutputSchema },
+    prompt: `
+        You are an AI assistant for the app Drillzy, designed to help users build new skills.
+        Your task is to analyze a user's answers to a 5-question survey and categorize them into one of four types: Thinker, Builder, Creator, or Connector.
+
+        The categories are defined as follows:
+        - **Thinker**: Analytical, loves to learn, breaks down problems.
+        - **Builder**: Practical, enjoys making and fixing things, process-oriented.
+        - **Creator**: Imaginative, artistic, comes up with original ideas.
+        - **Connector**: Social, good at networking, brings people together.
+
+        Analyze the following survey answers and determine the best-fitting category. Provide a short, menacing-yet-encouraging explanation for your choice, in the style of the Duolingo owl.
+
+        Survey Answers:
+        {{#each answers}}
+        - Question: "{{question}}"
+        - Answer: "{{answer}}"
+        {{/each}}
+    `,
+});
+
+const profileAnalysisFlow = ai.defineFlow(
+    {
+        name: 'profileAnalysisFlow',
+        inputSchema: ProfileAnalysisInputSchema,
+        outputSchema: ProfileAnalysisOutputSchema,
+    },
+    async (input) => {
+        const { output } = await profileAnalysisPrompt(input);
+        return output!;
+    }
+);
+
+
 export async function calculateSkillProfile(
   answers: SurveyAnswer[]
 ): Promise<ProfileAnalysisOutput> {
-  // Placeholder logic since the AI model is disabled.
-  const categories: Category[] = ['thinker', 'builder', 'creator', 'connector'];
-  const randomCategory = categories[Math.floor(Math.random() * categories.length)];
-  
-  return Promise.resolve({
-    category: randomCategory,
-    reasoning: "The AI is currently taking a nap. We've assigned you a category for now. Don't worry, we're watching."
-  });
+  return await profileAnalysisFlow({ answers });
 }

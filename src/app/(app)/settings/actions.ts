@@ -5,9 +5,7 @@ import {createClient} from '@/lib/supabase/server';
 import {revalidatePath} from 'next/cache';
 
 export async function updateUserName(newName: string) {
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const supabase = createClient();
 
   const {
     data: {user},

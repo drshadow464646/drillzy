@@ -8,16 +8,14 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
-  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
-  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-  const supabase = createClient(supabaseUrl, supabaseAnonKey);
+  const supabase = createClient();
 
   const {
     data: {user},
   } = await supabase.auth.getUser();
 
   // CHECK IF THE ROUTE IS PROTECTED
-  const protectedRoutes = ['/home', '/streak', '/leaderboard', '/settings'];
+  const protectedRoutes = ['/home', '/streak', '/leaderboard', '/settings', '/profile'];
   const isProtectedRoute = protectedRoutes.some((path) =>
     request.nextUrl.pathname.startsWith(path)
   );

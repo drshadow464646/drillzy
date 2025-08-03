@@ -44,7 +44,12 @@ export default function SettingsPage() {
     const [name, setName] = useState('');
     const [isSavingName, setIsSavingName] = useState(false);
     const { toast } = useToast();
-    const isNative = Capacitor.isNativePlatform();
+    const [isNative, setIsNative] = useState(false);
+
+    useEffect(() => {
+        setIsClient(true);
+        setIsNative(Capacitor.isNativePlatform());
+    }, []);
 
     const updatePermissionStatus = async () => {
         if (isNative) {
@@ -58,7 +63,6 @@ export default function SettingsPage() {
     };
 
     useEffect(() => {
-        setIsClient(true);
         updatePermissionStatus();
     }, [isNative]);
 
@@ -345,3 +349,5 @@ export default function SettingsPage() {
         </div>
     );
 }
+
+    

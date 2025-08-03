@@ -1,4 +1,4 @@
-package com.drillzy.app;
+package com.skilltrack.app;
 
 import android.os.Bundle;
 

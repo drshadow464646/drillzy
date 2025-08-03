@@ -7,7 +7,6 @@
  */
 'use server';
 
-import {ai} from '@/ai/genkit';
 import type {SurveyAnswer} from '@/lib/types';
 import {z} from 'zod';
 

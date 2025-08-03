@@ -15,7 +15,6 @@ interface UserDataContextType {
   burnSkill: () => Promise<void>;
   completeSkillForToday: () => Promise<void>;
   assignSkillForToday: () => void;
-  setInitialData: (data: UserData) => void;
 }
 
 const UserDataContext = createContext<UserDataContextType | undefined>(undefined);
@@ -59,20 +58,59 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
-  const setInitialData = useCallback((data: UserData) => {
-    const localHistoryStr = localStorage.getItem(`skillHistory_${data.id}`);
-    const localHistory: SkillHistoryItem[] = localHistoryStr ? JSON.parse(localHistoryStr) : [];
-    
-    setUserData({
-      ...data,
-      skillHistory: localHistory,
-      streakCount: calculateStreak(localHistory),
-    });
-    setIsLoading(false);
-  }, []);
-
+  // Effect to load user from Supabase and local storage
   useEffect(() => {
-    if (userData) {
+    const initializeUser = async () => {
+      setIsLoading(true);
+      const { data: { user } } = await supabase.auth.getUser();
+
+      if (user) {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('name, category')
+          .eq('id', user.id)
+          .single();
+        
+        const localHistoryStr = localStorage.getItem(`skillHistory_${user.id}`);
+        const localHistory: SkillHistoryItem[] = localHistoryStr ? JSON.parse(localHistoryStr) : [];
+        
+        setUserData({
+          id: user.id,
+          name: profile?.name || user.user_metadata.name || 'Learner',
+          category: profile?.category || null,
+          skillHistory: localHistory,
+          streakCount: calculateStreak(localHistory),
+        });
+
+      } else {
+        setUserData(null);
+      }
+      setIsLoading(false);
+    };
+
+    initializeUser();
+
+    const { data: authListener } = supabase.auth.onAuthStateChange(
+        (event, session) => {
+            if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
+                initializeUser();
+            }
+            if (event === 'SIGNED_OUT') {
+                setUserData(null);
+                router.push('/login');
+            }
+        }
+    );
+     return () => {
+        authListener.subscription.unsubscribe();
+    };
+
+  }, [supabase, router]);
+
+
+  // Effect to save history to local storage whenever it changes
+  useEffect(() => {
+    if (userData && userData.id) {
       localStorage.setItem(`skillHistory_${userData.id}`, JSON.stringify(userData.skillHistory));
     }
   }, [userData]);
@@ -84,7 +122,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         const hasSkillForToday = prev.skillHistory.some(item => item.date === todayStr);
         if (hasSkillForToday) return prev;
         const seenIds = prev.skillHistory.map(item => item.skillId);
-        const newSkill = getNewSkill(seenIds);
+        const newSkill = getNewSkill(seenIds, prev.category || undefined);
         const newSkillHistoryItem: SkillHistoryItem = newSkill
             ? { date: todayStr, skillId: newSkill.id, completed: false }
             : { date: todayStr, skillId: "NO_SKILLS_LEFT", completed: true };
@@ -99,7 +137,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
       const todayStr = format(new Date(), 'yyyy-MM-dd');
       const historyWithoutToday = prev.skillHistory.filter(item => item.date !== todayStr);
       const seenIds = historyWithoutToday.map(item => item.skillId);
-      const newSkill = getNewSkill(seenIds);
+      const newSkill = getNewSkill(seenIds, prev.category || undefined);
       const newSkillHistoryItem: SkillHistoryItem = newSkill
           ? { date: todayStr, skillId: newSkill.id, completed: false }
           : { date: todayStr, skillId: "NO_SKILLS_LEFT", completed: true };
@@ -122,8 +160,6 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
 
   const signOut = async () => {
     await supabase.auth.signOut();
-    // Use window.location to force a full page reload to clear server components
-    window.location.href = '/login';
   };
   
   const value = useMemo(() => ({
@@ -133,8 +169,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     burnSkill,
     completeSkillForToday,
     assignSkillForToday,
-    setInitialData,
-  }), [userData, isLoading, signOut, burnSkill, completeSkillForToday, assignSkillForToday, setInitialData]);
+  }), [userData, isLoading, signOut, burnSkill, completeSkillForToday, assignSkillForToday]);
 
   return (
     <UserDataContext.Provider value={value}>

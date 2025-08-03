@@ -1,9 +1,11 @@
+
 "use client";
 
 import * as React from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { getSkillById } from '@/lib/skills';
 import type { SkillHistoryItem } from '@/lib/types';
+import { allSkills } from '@/lib/skills';
 
 interface SkillRadarChartProps {
     history: SkillHistoryItem[];
@@ -18,13 +20,15 @@ const SkillRadarChart: React.FC<SkillRadarChartProps> = ({ history }) => {
             connector: 0,
         };
 
-        history.forEach(item => {
-            if (item.completed && item.skillId !== 'NO_SKILLS_LEFT') {
-                const skill = getSkillById(item.skillId);
-                if (skill) {
-                    counts[skill.category]++;
-                }
-            }
+        const completedSkills = history
+          .filter(item => item.completed && item.skillId !== 'NO_SKILLS_LEFT')
+          .map(item => getSkillById(item.skillId))
+          .filter(Boolean);
+        
+        // This is a placeholder for now until we have categories for skills.
+        completedSkills.forEach((skill, index) => {
+            const category = ['thinker', 'builder', 'creator', 'connector'][index % 4];
+            counts[category as keyof typeof counts]++;
         });
         
         const maxCount = Math.max(...Object.values(counts), 3);

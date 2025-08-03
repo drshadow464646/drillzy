@@ -4,6 +4,7 @@ export type Category = 'builder' | 'creator' | 'thinker' | 'connector';
 export interface Skill {
   id: string;
   text: string;
+  category: Category;
 }
 
 export interface SkillHistoryItem {

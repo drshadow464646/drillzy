@@ -3,13 +3,14 @@
 
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
-import { Brain, Flame, Settings, Trophy } from 'lucide-react';
+import { Brain, Flame, Settings, Trophy, User } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
 const navItems = [
   { href: '/home', icon: Brain, label: 'Home' },
   { href: '/streak', icon: Flame, label: 'Streak' },
   { href: '/leaderboard', icon: Trophy, label: 'Leagues' },
+  { href: '/profile', icon: User, label: 'Profile' },
   { href: '/settings', icon: Settings, label: 'Settings' },
 ];
 
@@ -22,7 +23,7 @@ export function BottomNav() {
         {navItems.map((item) => {
           const isActive = pathname.startsWith(item.href);
           return (
-            <Link key={item.href} href={item.href} className="flex flex-col items-center gap-1 text-muted-foreground transition-colors hover:text-primary">
+            <Link key={item.href} href={item.href} className="flex flex-col items-center justify-center w-16 h-16 gap-1 text-muted-foreground transition-colors hover:text-primary">
               <item.icon className={cn("h-7 w-7", isActive && "text-primary")} strokeWidth={isActive ? 2.5 : 2} />
               <span className={cn("text-xs font-medium", isActive && "text-primary")}>{item.label}</span>
             </Link>

@@ -4,12 +4,13 @@
 'use server';
 
 import {genkit} from 'genkit';
-import {openRouter} from 'genkitx-openrouter';
+// import {openRouter} from 'genkitx-openrouter';
 
 export const ai = genkit({
   plugins: [
-    // The OpenRouter plugin is removed for now to fix the build.
-    // We will find the correct package and add it back.
+    // openRouter({
+    //   apiKey: process.env.OPENROUTER_API_KEY,
+    // }),
   ],
   // Log to the console in a development environment.
   logSinks: [console.log],

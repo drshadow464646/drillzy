@@ -101,7 +101,7 @@ function LoginPageContent() {
                     </Card>
                 </TabsContent>
             </Tabs>
-            <Suspense>
+            <Suspense fallback={<div className="h-16 mt-4" />}>
                 <LoginMessage />
             </Suspense>
         </div>

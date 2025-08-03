@@ -1,28 +1,31 @@
 
-"use client";
+import { createClient } from '@/lib/supabase/server';
+import { redirect } from 'next/navigation';
 
-import { useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useUserData } from '@/context/UserDataProvider';
-import { Loader2 } from 'lucide-react';
+export default async function SplashPage() {
+  const supabase = createClient();
 
-export default function SplashPage() {
-  const router = useRouter();
-  const { isLoading } = useUserData();
+  const {
+    data: { user },
+  } = await supabase.auth.getUser();
 
-  useEffect(() => {
-    if (!isLoading) {
-      // The UserDataProvider will handle redirecting to the correct page
-      // (login, survey, or home) based on the user's auth state and profile.
-      // We just need to wait for it to finish loading.
-      // A small delay can prevent a flicker if the redirect is very fast.
-      setTimeout(() => router.replace('/home'), 50);
+  if (user) {
+    // Check if the user has completed the survey
+    const { data: profile } = await supabase
+      .from('profiles')
+      .select('category')
+      .eq('id', user.id)
+      .single();
+
+    if (profile?.category) {
+      redirect('/home');
+    } else {
+      redirect('/survey');
     }
-  }, [isLoading, router]);
+  } else {
+    redirect('/login');
+  }
 
-  return (
-    <div className="flex h-screen w-full items-center justify-center bg-background">
-      <Loader2 className="h-8 w-8 animate-spin text-primary" />
-    </div>
-  );
+  // This part of the component will never be rendered due to the redirects
+  return null;
 }

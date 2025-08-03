@@ -1,29 +1,22 @@
 
 "use client";
 
-import { useState, useEffect } from 'react';
-import { useRouter } from 'next/navigation';
-import { useUserData } from '@/context/UserDataProvider';
+import { useState } from 'react';
 import { surveyQuestions } from '@/lib/skills';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Loader2 } from 'lucide-react';
 import type { SurveyAnswer } from '@/lib/types';
+import { submitSurvey } from './actions';
+import { useSearchParams } from 'next/navigation';
 
 export default function SurveyPage() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<SurveyAnswer[]>([]);
-  const { userData, isLoading: isUserLoading, handleSurveySubmission } = useUserData();
-  const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-
-  useEffect(() => {
-    // This effect handles the case where a user with a category lands on this page.
-    if (!isUserLoading && userData?.category) {
-      router.replace('/home');
-    }
-  }, [userData, isUserLoading, router]);
+  
+  const searchParams = useSearchParams();
+  const error = searchParams.get('message');
 
   const handleAnswer = async (answerText: string) => {
     const newAnswers: SurveyAnswer[] = [
@@ -39,27 +32,9 @@ export default function SurveyPage() {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
       setIsSubmitting(true);
-      setError(null);
-      const result = await handleSurveySubmission(newAnswers);
-
-      // Instead of relying on a reactive effect, we navigate directly on success.
-      // This is more robust and avoids the race condition that was causing the freeze.
-      if (result.success) {
-        router.replace('/home');
-      } else {
-        setError(result.error || 'An unexpected error occurred.');
-        setIsSubmitting(false); // On error, allow the user to see the message.
-      }
+      await submitSurvey(newAnswers);
     }
   };
-
-  if (isUserLoading && !userData) {
-     return (
-        <div className="flex flex-col h-screen p-4 items-center justify-center text-center">
-            <Loader2 className="h-12 w-12 animate-spin text-primary" />
-        </div>
-    );
-  }
 
   if (isSubmitting) {
     return (
@@ -72,13 +47,6 @@ export default function SurveyPage() {
   }
 
   const currentQuestion = surveyQuestions[currentQuestionIndex];
-  if (!currentQuestion) {
-      return (
-          <div className="flex flex-col h-screen p-4 items-center justify-center text-center">
-              <Loader2 className="h-12 w-12 animate-spin text-primary" />
-          </div>
-      );
-  }
   const progress = ((currentQuestionIndex + 1) / surveyQuestions.length) * 100;
 
   return (

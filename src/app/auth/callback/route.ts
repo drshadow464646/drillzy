@@ -1,5 +1,24 @@
 
-// This file is intentionally left blank.
-// The server-side auth callback is not compatible with Next.js static exports.
-// Client-side auth handling for web is managed by the onAuthStateChange listener in UserDataProvider.
-// Client-side auth handling for native is managed by the CapacitorAuthHandler component.
+import {createClient} from '@/lib/supabase/server';
+import {NextResponse, type NextRequest} from 'next/server';
+
+export async function GET(request: NextRequest) {
+  const requestUrl = new URL(request.url);
+  const code = requestUrl.searchParams.get('code');
+  const next = requestUrl.searchParams.get('next') ?? '/';
+
+  if (code) {
+    const supabase = createClient();
+    const {error} = await supabase.auth.exchangeCodeForSession(code);
+
+    if (!error) {
+      return NextResponse.redirect(requestUrl.origin + next);
+    }
+  }
+
+  console.error('ERROR: No auth code received or error exchanging code.');
+  // return the user to an error page with instructions
+  return NextResponse.redirect(
+    `${requestUrl.origin}/login?message=Could not authenticate user`
+  );
+}

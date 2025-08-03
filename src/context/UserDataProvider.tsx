@@ -2,13 +2,11 @@
 "use client";
 
 import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo, useEffect } from 'react';
-import { useRouter, usePathname } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import type { User } from '@supabase/supabase-js';
-import type { UserData, SkillHistoryItem, Category, SurveyAnswer } from '@/lib/types';
+import type { UserData, SkillHistoryItem } from '@/lib/types';
 import { getNewSkill } from '@/lib/skills';
 import { format, subDays } from 'date-fns';
-import { calculateSkillProfile } from '@/ai/flows/calculate-skill-profile';
 
 interface UserDataContextType {
   userData: UserData | null;
@@ -17,7 +15,7 @@ interface UserDataContextType {
   burnSkill: () => Promise<void>;
   completeSkillForToday: () => Promise<void>;
   assignSkillForToday: () => void;
-  handleSurveySubmission: (answers: SurveyAnswer[]) => Promise<{ success: boolean; error: string | null; category: Category | null; }>;
+  setInitialData: (data: UserData) => void;
 }
 
 const UserDataContext = createContext<UserDataContextType | undefined>(undefined);
@@ -59,97 +57,25 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
-  const pathname = usePathname();
   const supabase = useMemo(() => createClient(), []);
 
-  const fetchFullUserData = useCallback(async (user: User) => {
-    const { data: profile, error } = await supabase
-      .from('profiles')
-      .select('name, category')
-      .eq('id', user.id)
-      .single();
-
-    if (error && error.code !== 'PGRST116') { // PGRST116 means no rows found
-      console.error("Error fetching profile:", error);
-      setUserData({
-        id: user.id,
-        name: user.user_metadata.name || 'Learner',
-        category: null,
-        skillHistory: [], 
-        streakCount: 0,
-      });
-      return;
-    }
-
-    const localHistoryStr = localStorage.getItem(`skillHistory_${user.id}`);
+  const setInitialData = useCallback((data: UserData) => {
+    const localHistoryStr = localStorage.getItem(`skillHistory_${data.id}`);
     const localHistory: SkillHistoryItem[] = localHistoryStr ? JSON.parse(localHistoryStr) : [];
     
     setUserData({
-      id: user.id,
-      name: profile?.name || user.user_metadata.name || 'Learner',
-      category: profile?.category || null,
+      ...data,
       skillHistory: localHistory,
       streakCount: calculateStreak(localHistory),
     });
-  }, [supabase]);
-
-  useEffect(() => {
-    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
-      if (event === 'PASSWORD_RECOVERY') {
-        // The user has clicked the password recovery link.
-        // The session is now set, and we can guide them to a page
-        // where they can update their password.
-        router.push('/reset-password');
-        setIsLoading(false);
-        return;
-      }
-      
-      const currentUser = session?.user;
-      if (currentUser) {
-        await fetchFullUserData(currentUser);
-      } else {
-        setUserData(null);
-      }
-      setIsLoading(false);
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, [supabase, fetchFullUserData, router]);
-
+    setIsLoading(false);
+  }, []);
 
   useEffect(() => {
     if (userData) {
       localStorage.setItem(`skillHistory_${userData.id}`, JSON.stringify(userData.skillHistory));
     }
   }, [userData]);
-
-
-  useEffect(() => {
-    if (isLoading) return;
-
-    const isAuthPage = pathname.startsWith('/login') || pathname.startsWith('/reset-password');
-    const isSurveyPage = pathname.startsWith('/survey');
-    const isSplashPage = pathname === '/';
-
-    if (!userData && !isAuthPage) {
-      router.replace('/login');
-    } else if (userData) {
-      if (isAuthPage || isSplashPage) {
-        if (!userData.category) {
-            router.replace('/survey');
-        } else {
-            router.replace('/home');
-        }
-      } else if (!userData.category && !isSurveyPage) {
-        router.replace('/survey');
-      } else if (userData.category && isSurveyPage) {
-        router.replace('/home');
-      }
-    }
-  }, [userData, isLoading, pathname, router]);
-
 
   const assignSkillForToday = useCallback(() => {
     setUserData(prev => {
@@ -194,34 +120,10 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     });
   }, []);
 
-  const handleSurveySubmission = async (answers: SurveyAnswer[]): Promise<{ success: boolean; error: string | null; category: Category | null; }> => {
-    if (!userData) {
-        return { success: false, error: 'User not authenticated.', category: null };
-    }
-    try {
-      // Call the Genkit flow to get the category from the AI.
-      const { category } = await calculateSkillProfile(answers);
-
-      const { error: profileError } = await supabase
-        .from('profiles')
-        .update({ category: category })
-        .eq('id', userData.id);
-
-      if (profileError) throw profileError;
-      
-      setUserData(prev => prev ? { ...prev, category } : null);
-      
-      return { success: true, error: null, category };
-    } catch (error) {
-      console.error('Error submitting survey:', error);
-      const errorMessage = error instanceof Error ? error.message : 'An unknown error occurred.';
-      return { success: false, error: `Failed to save profile: ${errorMessage}`, category: null };
-    }
-  };
-
   const signOut = async () => {
     await supabase.auth.signOut();
-    router.push('/login');
+    // Use window.location to force a full page reload to clear server components
+    window.location.href = '/login';
   };
   
   const value = useMemo(() => ({
@@ -231,8 +133,8 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     burnSkill,
     completeSkillForToday,
     assignSkillForToday,
-    handleSurveySubmission,
-  }), [userData, isLoading, signOut, burnSkill, completeSkillForToday, assignSkillForToday, handleSurveySubmission]);
+    setInitialData,
+  }), [userData, isLoading, signOut, burnSkill, completeSkillForToday, assignSkillForToday, setInitialData]);
 
   return (
     <UserDataContext.Provider value={value}>

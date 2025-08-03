@@ -9,13 +9,13 @@ export interface Skill {
 
 export interface SkillHistoryItem {
   date: string; // YYYY-MM-DD
-  skillId: string;
+  skill: Skill;
   completed: boolean;
 }
 
 export interface UserData {
   id: string;
-  name: string;
+  name:string;
   category: Category | null;
   skillHistory: SkillHistoryItem[];
   streakCount: number;

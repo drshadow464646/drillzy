@@ -54,19 +54,3 @@ export async function signup(formData: FormData) {
     '/login?message=Check your email to complete the signup process'
   );
 }
-
-export async function resetPassword(formData: FormData) {
-  const supabase = createClient();
-  const email = formData.get('email') as string;
-  const origin = new Headers().get('origin');
-
-  const { error } = await supabase.auth.resetPasswordForEmail(email, {
-    redirectTo: `${origin}/reset-password`,
-  });
-
-  if (error) {
-    return redirect(`/login?message=Error sending recovery email`);
-  }
-
-  return redirect('/login?message=Password reset link sent!');
-}

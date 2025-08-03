@@ -1,0 +1,26 @@
+
+'use server';
+
+import { redirect } from 'next/navigation';
+import { createClient } from '@/lib/supabase/server';
+
+export async function requestPasswordReset(formData: FormData) {
+  const supabase = createClient();
+  const email = formData.get('email') as string;
+  const origin = new Headers().get('origin');
+
+  if (!email) {
+    return { error: 'Please provide your email address.' };
+  }
+
+  const { error } = await supabase.auth.resetPasswordForEmail(email, {
+    redirectTo: `${origin}/reset-password`,
+  });
+
+  if (error) {
+    console.error('Password Reset Error:', error);
+    return { error: "Could not send password reset email. Please try again." };
+  }
+
+  return { error: null };
+}

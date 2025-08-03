@@ -6,8 +6,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { login, signup, resetPassword } from './actions';
+import { login, signup } from './actions';
 import { useSearchParams } from 'next/navigation';
+import Link from 'next/link';
 
 export default function LoginPage() {
     const searchParams = useSearchParams();
@@ -54,11 +55,11 @@ export default function LoginPage() {
                                 </div>
                                 <Button type="submit" className="w-full">Login</Button>
                             </form>
-                            <form action={resetPassword} className="mt-2">
-                                <Button variant="link" size="sm" className="p-0 h-auto w-full">
+                            <Button variant="link" size="sm" asChild className="p-0 h-auto w-full mt-2">
+                                <Link href="/forgot-password">
                                     Forgot Password?
-                                </Button>
-                            </form>
+                                </Link>
+                            </Button>
                         </CardContent>
                     </Card>
                 </TabsContent>

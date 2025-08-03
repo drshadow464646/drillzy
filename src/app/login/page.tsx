@@ -43,7 +43,7 @@ export default function LoginPage() {
                             <CardDescription>Enter your credentials to access your account.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                             <form className="space-y-4">
+                             <form className="space-y-4" action={login}>
                                 <div className="space-y-2">
                                     <Label htmlFor="email-login">Email</Label>
                                     <Input id="email-login" name="email" type="email" placeholder="you@example.com" required />
@@ -52,15 +52,12 @@ export default function LoginPage() {
                                     <Label htmlFor="password-login">Password</Label>
                                     <Input id="password-login" name="password" type="password" required />
                                 </div>
-                                <div className="text-right">
-                                    {/* The user needs to input their email to get a reset link */}
-                                </div>
-                                <Button formAction={login} className="w-full">Login</Button>
-                                <form>
-                                    <Button variant="link" size="sm" className="p-0 h-auto w-full" formAction={resetPassword}>
-                                        Forgot Password?
-                                    </Button>
-                                </form>
+                                <Button type="submit" className="w-full">Login</Button>
+                            </form>
+                            <form action={resetPassword} className="mt-2">
+                                <Button variant="link" size="sm" className="p-0 h-auto w-full">
+                                    Forgot Password?
+                                </Button>
                             </form>
                         </CardContent>
                     </Card>
@@ -72,7 +69,7 @@ export default function LoginPage() {
                             <CardDescription>Create an account to track your progress.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                            <form className="space-y-4">
+                            <form className="space-y-4" action={signup}>
                                 <div className="space-y-2">
                                     <Label htmlFor="name-signup">Name</Label>
                                     <Input id="name-signup" name="name" type="text" placeholder="Your Name" required />
@@ -85,7 +82,7 @@ export default function LoginPage() {
                                     <Label htmlFor="password-signup">Password</Label>
                                     <Input id="password-signup" name="password" type="password" required />
                                 </div>
-                                <Button formAction={signup} className="w-full">Create Account</Button>
+                                <Button type="submit" className="w-full">Create Account</Button>
                             </form>
                         </CardContent>
                     </Card>

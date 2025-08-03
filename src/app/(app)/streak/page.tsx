@@ -2,16 +2,24 @@
 "use client";
 
 import { useUserData } from '@/context/UserDataProvider';
-import { useRouter } from 'next/navigation';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Award, CalendarCheck, Flame, PieChart as PieChartIcon, Quote, Sparkles, Star, Trophy } from 'lucide-react';
+import { Award, CalendarCheck, Flame, Quote, Sparkles, Star, Trophy } from 'lucide-react';
 import { format, isSameDay, parseISO } from 'date-fns';
 import { getSkillById } from '@/lib/skills';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { DayModifiers } from 'react-day-picker';
-import type { SkillHistoryItem } from '@/lib/types';
+import type { Skill } from '@/lib/types';
+import { createClient } from '@/lib/supabase/client';
+
+// Local type definition to avoid conflicts
+type SkillHistoryItem = {
+  date: string;
+  skillId: string;
+  completed: boolean;
+  skill: Skill;
+};
 
 const achievements = [
     { days: 3, label: "3-Day Spark", icon: Flame },
@@ -21,12 +29,15 @@ const achievements = [
 ];
 
 export default function StreakPage() {
-  const { userData, isLoading } = useUserData();
+  const { userData, isLoading: isUserLoading } = useUserData();
+  const [skillHistory, setSkillHistory] = useState<SkillHistoryItem[] | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const [selectedDay, setSelectedDay] = useState<Date | undefined>();
   const [isClient, setIsClient] = useState(false);
   const [fromMonth, setFromMonth] = useState<Date | undefined>();
   const [toMonth, setToMonth] = useState<Date | undefined>();
-  
+  const supabase = useMemo(() => createClient(), []);
+
   useEffect(() => {
     setIsClient(true);
     const now = new Date();
@@ -34,13 +45,37 @@ export default function StreakPage() {
     twoMonthsAgo.setMonth(now.getMonth() - 2);
     setFromMonth(twoMonthsAgo);
     setToMonth(now);
-  }, []);
+
+    const fetchHistory = async () => {
+      if (userData) {
+        setIsLoading(true);
+        const { data, error } = await supabase
+          .from('skill_history')
+          .select('date, skill_id, completed')
+          .eq('user_id', userData.id)
+          .order('date', { ascending: false });
+
+        if (error) {
+          console.error("Error fetching skill history:", error);
+          setSkillHistory([]);
+        } else {
+          const enrichedHistory = data
+            .map(item => ({ date: item.date, skillId: item.skill_id, completed: item.completed, skill: getSkillById(item.skill_id) }))
+            .filter(item => item.skill) as SkillHistoryItem[];
+          setSkillHistory(enrichedHistory);
+        }
+        setIsLoading(false);
+      }
+    };
+
+    fetchHistory();
+  }, [userData, supabase]);
   
   const currentSkillText = useMemo(() => {
-    if (!isClient || !userData || !userData.skillHistory.length) return "Loading skill...";
+    if (!isClient || !skillHistory || !skillHistory.length) return "Loading skill...";
     
     const todayStr = format(new Date(), 'yyyy-MM-dd');
-    const todayHistoryItem = userData.skillHistory.find(item => item.date === todayStr);
+    const todayHistoryItem = skillHistory.find(item => item.date === todayStr);
     
     if (!todayHistoryItem) {
         return "Go to the Home screen to get your skill for today!";
@@ -52,19 +87,19 @@ export default function StreakPage() {
     
     const skill = getSkillById(todayHistoryItem.skillId);
     return skill?.text || "Loading skill...";
-  }, [userData, isClient]);
+  }, [skillHistory, isClient]);
 
   const completedDays = useMemo(() => {
-    if (!isClient || !userData) return [];
-    return userData.skillHistory
+    if (!isClient || !skillHistory) return [];
+    return skillHistory
         .filter(item => item.completed && item.skillId !== "NO_SKILLS_LEFT")
         .map(item => parseISO(item.date));
-  }, [userData, isClient]);
+  }, [skillHistory, isClient]);
 
   const selectedSkill = useMemo(() => {
-    if (!selectedDay || !userData) return null;
+    if (!selectedDay || !skillHistory) return null;
     const dateStr = format(selectedDay, 'yyyy-MM-dd');
-    const historyItem = userData.skillHistory.find(item => item.date === dateStr && item.completed);
+    const historyItem = skillHistory.find(item => item.date === dateStr && item.completed);
     if (historyItem && historyItem.skillId !== 'NO_SKILLS_LEFT') {
         const skill = getSkillById(historyItem.skillId);
         if (skill) {
@@ -75,7 +110,7 @@ export default function StreakPage() {
         }
     }
     return null;
-  }, [selectedDay, userData]);
+  }, [selectedDay, skillHistory]);
 
 
   const handleDayClick = (day: Date, modifiers: DayModifiers) => {
@@ -90,7 +125,7 @@ export default function StreakPage() {
     }
   };
 
-  if (!isClient || isLoading || !userData) {
+  if (!isClient || isUserLoading || isLoading || !userData) {
     return (
         <div className="p-4 sm:p-6 md:p-8 min-h-screen">
             <header className="py-4 text-center">
@@ -222,9 +257,9 @@ export default function StreakPage() {
                         <CardTitle className="text-lg">Completed Skill History</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {userData.skillHistory.filter(s => s.completed && s.skillId !== 'NO_SKILLS_LEFT').length > 0 ? (
+                        {skillHistory && skillHistory.filter(s => s.completed && s.skillId !== 'NO_SKILLS_LEFT').length > 0 ? (
                              <ul className="space-y-4 max-h-[24rem] overflow-y-auto pr-2">
-                                {userData.skillHistory
+                                {skillHistory
                                     .filter(s => s.completed && s.skillId !== 'NO_SKILLS_LEFT')
                                     .slice(0, 10)
                                     .map((item) => {

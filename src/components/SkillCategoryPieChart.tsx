@@ -3,11 +3,10 @@
 
 import * as React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { getSkillById } from '@/lib/skills';
-import type { SkillHistoryItem } from '@/lib/types';
+import type { CategoryCounts } from '@/lib/types';
 
 interface SkillCategoryPieChartProps {
-    history: SkillHistoryItem[];
+    data: CategoryCounts;
 }
 
 const RADIAN = Math.PI / 180;
@@ -26,34 +25,26 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
 };
 
 
-const SkillCategoryPieChart: React.FC<SkillCategoryPieChartProps> = ({ history }) => {
+const SkillCategoryPieChart: React.FC<SkillCategoryPieChartProps> = ({ data }) => {
     const categoryData = React.useMemo(() => {
-        const counts = {
-            thinker: 0,
-            builder: 0,
-            creator: 0,
-            connector: 0,
-        };
-
-        const completedSkills = history
-          .filter(item => item.completed && item.skillId !== 'NO_SKILLS_LEFT')
-          .map(item => getSkillById(item.skillId))
-          .filter(Boolean);
-
-        // This is a placeholder for now until we have categories for skills.
-        completedSkills.forEach((skill, index) => {
-            const category = ['thinker', 'builder', 'creator', 'connector'][index % 4];
-            counts[category as keyof typeof counts]++;
-        });
-        
+        if (!data) return [];
+        const counts = data;
         return [
                 { name: 'Thinker', value: counts.thinker },
                 { name: 'Creator', value: counts.creator },
                 { name: 'Builder', value: counts.builder },
                 { name: 'Connector', value: counts.connector },
             ].filter(d => d.value > 0);
-    }, [history]);
+    }, [data]);
     
+    if (!data) {
+        return (
+            <div className="flex flex-col items-center justify-center h-full text-center">
+                <p className="text-muted-foreground font-semibold">Loading data...</p>
+            </div>
+        )
+    }
+
     const total = categoryData.reduce((sum, item) => sum + item.value, 0);
 
     if (total === 0) {

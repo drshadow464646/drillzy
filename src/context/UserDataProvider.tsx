@@ -4,8 +4,8 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import type { UserData, SkillHistoryItem } from '@/lib/types';
-import { getNewSkill } from '@/lib/skills';
+import type { UserData, SkillHistoryItem, Skill } from '@/lib/types';
+import { getNewSkill, getSkillById } from '@/lib/skills';
 import { format } from 'date-fns';
 
 interface UserDataContextType {
@@ -31,7 +31,6 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     const { data: { user } } = await supabase.auth.getUser();
 
     if (user) {
-      // Migrate data from localStorage if necessary
       await migrateLocalStorageToSupabase(user.id);
 
       const { data: profile, error: profileError } = await supabase
@@ -40,25 +39,26 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         .eq('id', user.id)
         .single();
 
-      if (profileError) {
-        console.error("Error fetching profile:", profileError);
-      }
+      if (profileError) console.error("Error fetching profile:", profileError);
 
-      const { data: skillHistory, error: historyError } = await supabase
+      const { data: skillHistoryData, error: historyError } = await supabase
         .from('skill_history')
-        .select('*')
+        .select('date, skill_id, completed')
         .eq('user_id', user.id)
         .order('date', { ascending: false });
       
-      if (historyError) {
-        console.error("Error fetching skill history:", historyError);
-      }
+      if (historyError) console.error("Error fetching skill history:", historyError);
+
+      const enrichedHistory = skillHistoryData?.map(item => {
+        const skill = getSkillById(item.skill_id);
+        return { ...item, skill: skill! };
+      }).filter(item => item.skill) || [];
 
       setUserData({
         id: user.id,
         name: profile?.name || user.user_metadata.name || 'Learner',
         category: profile?.category || null,
-        skillHistory: skillHistory || [],
+        skillHistory: enrichedHistory,
         streakCount: profile?.streak_count || 0,
       });
 
@@ -70,15 +70,15 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
 
   const migrateLocalStorageToSupabase = async (userId: string) => {
     const localHistoryStr = localStorage.getItem(`skillHistory_${userId}`);
-    if (!localHistoryStr) return; // No local data to migrate
+    if (!localHistoryStr) return;
 
-    const { data: remoteHistory, count } = await supabase
+    const { count } = await supabase
       .from('skill_history')
       .select('id', { count: 'exact' })
       .eq('user_id', userId);
 
     if (count === 0) {
-      const localHistory: SkillHistoryItem[] = JSON.parse(localHistoryStr);
+      const localHistory: { date: string; skillId: string; completed: boolean }[] = JSON.parse(localHistoryStr);
       const recordsToInsert = localHistory.map(item => ({
         user_id: userId,
         date: item.date,
@@ -90,85 +90,61 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         await supabase.from('skill_history').insert(recordsToInsert);
       }
     }
-    // Once migrated, remove from local storage
     localStorage.removeItem(`skillHistory_${userId}`);
   };
 
   useEffect(() => {
     initializeUser();
-
-    const { data: authListener } = supabase.auth.onAuthStateChange(
-        (event, session) => {
-            if (event === 'SIGNED_IN' || event === 'USER_UPDATED') {
-                initializeUser();
-            }
-            if (event === 'SIGNED_OUT') {
-                setUserData(null);
-                router.push('/login');
-            }
-        }
-    );
-     return () => {
-        authListener.subscription.unsubscribe();
-    };
-
+    const { data: authListener } = supabase.auth.onAuthStateChange((event) => {
+      if (event === 'SIGNED_IN' || event === 'USER_UPDATED') initializeUser();
+      if (event === 'SIGNED_OUT') {
+        setUserData(null);
+        router.push('/login');
+      }
+    });
+    return () => authListener.subscription.unsubscribe();
   }, [supabase, router, initializeUser]);
 
   const assignSkillForToday = useCallback(async () => {
     if (!userData) return;
     const todayStr = format(new Date(), 'yyyy-MM-dd');
-    const hasSkillForToday = userData.skillHistory.some(item => item.date === todayStr);
-    if (hasSkillForToday) return;
+    if (userData.skillHistory.some(item => item.date === todayStr)) return;
 
-    const seenIds = userData.skillHistory.map(item => item.skillId);
+    const seenIds = userData.skillHistory.map(item => item.skill.id);
     const newSkill = getNewSkill(seenIds, userData.category || undefined);
-    const newSkillHistoryItem = {
+
+    await supabase.from('skill_history').insert([{
       user_id: userData.id,
       date: todayStr,
       skill_id: newSkill ? newSkill.id : "NO_SKILLS_LEFT",
-      completed: newSkill ? false : true,
-    };
-
-    const { error } = await supabase.from('skill_history').insert([newSkillHistoryItem]);
-    if (!error) {
-      await refreshUserData();
-    }
+      completed: !newSkill,
+    }]);
+    await refreshUserData();
   }, [userData, supabase]);
 
   const burnSkill = useCallback(async () => {
     if (!userData) return;
     const todayStr = format(new Date(), 'yyyy-MM-dd');
 
-    // First, delete today's skill if it exists
     await supabase.from('skill_history').delete().match({ user_id: userData.id, date: todayStr });
 
-    // Then, assign a new one
-    const seenIds = userData.skillHistory.filter(item => item.date !== todayStr).map(item => item.skillId);
+    const seenIds = userData.skillHistory.filter(item => item.date !== todayStr).map(item => item.skill.id);
     const newSkill = getNewSkill(seenIds, userData.category || undefined);
-    const newSkillHistoryItem = {
+
+    await supabase.from('skill_history').insert([{
       user_id: userData.id,
       date: todayStr,
       skill_id: newSkill ? newSkill.id : "NO_SKILLS_LEFT",
-      completed: newSkill ? false : true,
-    };
-
-    const { error } = await supabase.from('skill_history').insert([newSkillHistoryItem]);
-    if (!error) {
-      await refreshUserData();
-    }
+      completed: !newSkill,
+    }]);
+    await refreshUserData();
   }, [userData, supabase]);
   
   const completeSkillForToday = useCallback(async () => {
     if (!userData) return;
     const todayStr = format(new Date(), 'yyyy-MM-dd');
-    const { error } = await supabase
-      .from('skill_history')
-      .update({ completed: true })
-      .match({ user_id: userData.id, date: todayStr });
-
-    if (!error) {
-      await refreshUserData();
-    }
+    await supabase.from('skill_history').update({ completed: true }).match({ user_id: userData.id, date: todayStr });
+    await refreshUserData();
   }, [userData, supabase]);
 
   const signOut = async () => {

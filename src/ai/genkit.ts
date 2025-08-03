@@ -5,6 +5,7 @@
 
 import {genkit} from 'genkit';
 import {googleAI} from '@genkit-ai/google-ai';
+import {defineModel} from 'genkit-plugin-openrouter';
 
 export const ai = genkit({
   plugins: [

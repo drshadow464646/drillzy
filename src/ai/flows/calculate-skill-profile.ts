@@ -35,45 +35,62 @@ export type ProfileAnalysisOutput = z.infer<
   typeof ProfileAnalysisOutputSchema
 >;
 
-const profileAnalysisPrompt = ai.definePrompt({
-    name: 'profileAnalysisPrompt',
-    input: { schema: ProfileAnalysisInputSchema },
-    output: { schema: ProfileAnalysisOutputSchema },
-    prompt: `
-        You are an AI assistant for the app Drillzy, designed to help users build new skills.
-        Your task is to analyze a user's answers to a 5-question survey and categorize them into one of four types: Thinker, Builder, Creator, or Connector.
-
-        The categories are defined as follows:
-        - **Thinker**: Analytical, loves to learn, breaks down problems.
-        - **Builder**: Practical, enjoys making and fixing things, process-oriented.
-        - **Creator**: Imaginative, artistic, comes up with original ideas.
-        - **Connector**: Social, good at networking, brings people together.
-
-        Analyze the following survey answers and determine the best-fitting category. Provide a short, menacing-yet-encouraging explanation for your choice, in the style of the Duolingo owl.
-
-        Survey Answers:
-        {{#each answers}}
-        - Question: "{{question}}"
-        - Answer: "{{answer}}"
-        {{/each}}
-    `,
-});
-
-const profileAnalysisFlow = ai.defineFlow(
-    {
-        name: 'profileAnalysisFlow',
-        inputSchema: ProfileAnalysisInputSchema,
-        outputSchema: ProfileAnalysisOutputSchema,
-    },
-    async (input) => {
-        const { output } = await profileAnalysisPrompt(input);
-        return output!;
-    }
-);
-
+// Placeholder function until a reliable model integration is confirmed.
+const calculateSkillProfilePlaceholder = async (
+    answers: SurveyAnswer[]
+  ): Promise<ProfileAnalysisOutput> => {
+    // This is a simple heuristic-based placeholder.
+    // It can be replaced with a real AI call when the integration is ready.
+    const categoryCounts: Record<string, number> = {
+      thinker: 0,
+      builder: 0,
+      creator: 0,
+      connector: 0,
+    };
+  
+    answers.forEach(a => {
+      if (a.question.includes('challenge')) {
+        if (a.answer.includes('Analyze')) categoryCounts.thinker++;
+        if (a.answer.includes('building')) categoryCounts.builder++;
+        if (a.answer.includes('Brainstorm')) categoryCounts.creator++;
+        if (a.answer.includes('Ask others')) categoryCounts.connector++;
+      } else if (a.question.includes('project')) {
+        if (a.answer.includes('website')) categoryCounts.builder++;
+        if (a.answer.includes('logo')) categoryCounts.creator++;
+        if (a.answer.includes('Connect them')) categoryCounts.connector++;
+        if (a.answer.includes('strategic plan')) categoryCounts.thinker++;
+      } else if (a.question.includes('Saturday')) {
+        if (a.answer.includes('art')) categoryCounts.creator++;
+        if (a.answer.includes('networking')) categoryCounts.connector++;
+        if (a.answer.includes('book')) categoryCounts.thinker++;
+        if (a.answer.includes('DIY project')) categoryCounts.builder++;
+      } else if (a.question.includes('compliment')) {
+        if (a.answer.includes('bring people together')) categoryCounts.connector++;
+        if (a.answer.includes('practical and solid')) categoryCounts.builder++;
+        if (a.answer.includes('original perspective')) categoryCounts.creator++;
+        if (a.answer.includes('understand things so deeply')) categoryCounts.thinker++;
+      } else if (a.question.includes('tool')) {
+        if (a.answer.includes('database')) categoryCounts.thinker++;
+        if (a.answer.includes('canvas')) categoryCounts.creator++;
+        if (a.answer.includes('hammer')) categoryCounts.builder++;
+        if (a.answer.includes('contact list')) categoryCounts.connector++;
+      }
+    });
+  
+    const determinedCategory = Object.keys(categoryCounts).reduce((a, b) =>
+      categoryCounts[a] > categoryCounts[b] ? a : b
+    ) as 'thinker' | 'builder' | 'creator' | 'connector';
+  
+    return {
+      category: determinedCategory,
+      reasoning:
+        'I have analyzed your responses and this is the only logical conclusion. Now, get to work.',
+    };
+};
 
 export async function calculateSkillProfile(
   answers: SurveyAnswer[]
 ): Promise<ProfileAnalysisOutput> {
-  return await profileAnalysisFlow({ answers });
+  // Using the placeholder function for now.
+  return calculateSkillProfilePlaceholder(answers);
 }

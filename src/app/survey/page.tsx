@@ -79,7 +79,9 @@ function SurveyPageContent() {
               </Button>
             ))}
           </div>
-          <SurveyErrorMessage />
+          <Suspense>
+            <SurveyErrorMessage />
+          </Suspense>
         </div>
       </main>
     </div>
@@ -87,13 +89,5 @@ function SurveyPageContent() {
 }
 
 export default function SurveyPage() {
-    return (
-        <Suspense fallback={
-            <div className="flex h-screen w-full flex-col items-center justify-center">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            </div>
-        }>
-            <SurveyPageContent />
-        </Suspense>
-    )
+    return <SurveyPageContent />;
 }

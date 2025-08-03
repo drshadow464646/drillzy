@@ -101,19 +101,13 @@ function LoginPageContent() {
                     </Card>
                 </TabsContent>
             </Tabs>
-            <LoginMessage />
+            <Suspense>
+                <LoginMessage />
+            </Suspense>
         </div>
     );
 }
 
 export default function LoginPage() {
-    return (
-        <Suspense fallback={
-            <div className="flex h-screen w-full flex-col items-center justify-center">
-                <Loader2 className="h-12 w-12 animate-spin text-primary" />
-            </div>
-        }>
-            <LoginPageContent />
-        </Suspense>
-    )
+    return <LoginPageContent />;
 }

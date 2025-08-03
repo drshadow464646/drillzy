@@ -4,15 +4,12 @@
 'use server';
 
 import {genkit} from 'genkit';
-import {googleAI} from '@genkit-ai/googleai';
+import {openRouter} from 'genkitx-openrouter';
 
 export const ai = genkit({
   plugins: [
-    googleAI({
-      // The Gemini 1.5 Flash model is a good default for text-only tasks.
-      // It's fast, cheap, and has a large context window.
-      model: 'gemini-1.5-flash-preview-0514',
-    }),
+    // The OpenRouter plugin is removed for now to fix the build.
+    // We will find the correct package and add it back.
   ],
   // Log to the console in a development environment.
   logSinks: [console.log],

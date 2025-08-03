@@ -29,52 +29,23 @@ const ProfileAnalysisOutputSchema = z.object({
     ),
   reasoning: z
     .string()
-    .describe('A brief explanation for why the category was chosen.'),
+    .describe('A brief, menacing yet encouraging explanation for why the category was chosen, in the style of Duolingo.'),
 });
 export type ProfileAnalysisOutput = z.infer<
   typeof ProfileAnalysisOutputSchema
 >;
 
-// Define the prompt for the AI model.
-const profileAnalysisPrompt = ai.definePrompt({
-  name: 'profileAnalysisPrompt',
-  input: {schema: ProfileAnalysisInputSchema},
-  output: {schema: ProfileAnalysisOutputSchema},
-  prompt: `
-    You are an expert career and personality coach.
-    Based on the following questions and answers from a user's survey, determine which of the four categories they fall into:
-
-    - Thinker: Analytical, loves data, strategy, and understanding complex systems.
-    - Builder: Likes to create tangible things, work with tools, and see concrete results.
-    - Creator: Enjoys originality, art, brainstorming, and expressing new ideas.
-    - Connector: Skilled at networking, communication, and bringing people together.
-
-    Analyze the user's responses and choose the single best-fit category for them. Provide a brief reasoning for your choice.
-
-    User's Survey Answers:
-    {{#each answers}}
-    - Question: {{question}}
-      Answer: {{answer}}
-    {{/each}}
-  `,
-});
-
-// Define the flow that uses the prompt.
-const calculateSkillProfileFlow = ai.defineFlow(
-  {
-    name: 'calculateSkillProfileFlow',
-    inputSchema: ProfileAnalysisInputSchema,
-    outputSchema: ProfileAnalysisOutputSchema,
-  },
-  async (input) => {
-    const {output} = await profileAnalysisPrompt(input);
-    return output!;
-  }
-);
-
 // Define the exported function that the application will call.
+// This is now a placeholder that returns a random category.
 export async function calculateSkillProfile(
   answers: SurveyAnswer[]
 ): Promise<ProfileAnalysisOutput> {
-  return calculateSkillProfileFlow({answers});
+  // Placeholder logic since the AI model is disabled.
+  const categories: Category[] = ['thinker', 'builder', 'creator', 'connector'];
+  const randomCategory = categories[Math.floor(Math.random() * categories.length)];
+  
+  return Promise.resolve({
+    category: randomCategory,
+    reasoning: "The AI is currently taking a nap. We've assigned you a category for now. Don't worry, we're watching."
+  });
 }

@@ -9,7 +9,7 @@ const config: CapacitorConfig = {
   bundledWebRuntime: false,
   server: {
     // Replace this with your app's live URL when you deploy it
-    url: 'https://your-app-url.com', 
+    url: 'https://drillzy-etpo.vercel.app', 
     cleartext: true
   }
 };

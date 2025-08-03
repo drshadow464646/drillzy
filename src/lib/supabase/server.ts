@@ -5,14 +5,12 @@ import { cookies } from 'next/headers'
 export const createClient = () => {
   const cookieStore = cookies()
 
-  // IMPORTANT: Replace these placeholder values with your actual Supabase credentials
-  // This is a temporary fix to get the application running.
-  const supabaseUrl = 'YOUR_SUPABASE_URL';
-  const supabaseAnonKey = 'YOUR_SUPABASE_ANON_KEY';
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!;
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!;
 
-  if (supabaseUrl === 'YOUR_SUPABASE_URL' || supabaseAnonKey === 'YOUR_SUPABASE_ANON_KEY') {
+  if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error(
-      'Missing Supabase URL or anonymous key. Please replace the placeholder values in src/lib/supabase/server.ts.'
+      'Missing Supabase URL or anonymous key. Make sure to set NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY in your .env.local file.'
     );
   }
 

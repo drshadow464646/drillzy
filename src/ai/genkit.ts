@@ -4,14 +4,28 @@
 'use server';
 
 import {genkit} from 'genkit';
-import {googleAI} from '@genkit-ai/google-ai';
 import {defineModel} from 'genkit-plugin-openrouter';
 
 export const ai = genkit({
   plugins: [
-    googleAI({
-      apiKey: process.env.GEMINI_API_KEY,
-    }),
+    defineModel(
+        {
+          name: 'google/gemini-pro',
+          label: 'Google - Gemini Pro',
+          family: 'Gemini',
+          description: 'A Google powerhouse',
+          capabilities: {
+            media: false,
+            web: false,
+            tools: false,
+            output: ['text'],
+            multiturn: true,
+          },
+        },
+        {
+          apiKey: process.env.OPENROUTER_API_KEY,
+        }
+      ),
   ],
   // Log to the console in a development environment.
   logSinks: [console.log],

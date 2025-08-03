@@ -1,6 +1,4 @@
 
-"use client";
-
 import { Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,9 +8,9 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { login, signup } from './actions';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import { Loader2 } from 'lucide-react';
 
 function LoginMessage() {
+    'use client';
     const searchParams = useSearchParams();
     const message = searchParams.get('message');
 
@@ -22,10 +20,10 @@ function LoginMessage() {
         <p className="mt-4 p-4 bg-foreground/10 text-foreground text-center rounded-md">
             {message}
         </p>
-    )
+    );
 }
 
-function LoginPageContent() {
+export default function LoginPage() {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen p-4">
             <div className="flex flex-col items-center text-center mb-8">
@@ -106,8 +104,4 @@ function LoginPageContent() {
             </Suspense>
         </div>
     );
-}
-
-export default function LoginPage() {
-    return <LoginPageContent />;
 }

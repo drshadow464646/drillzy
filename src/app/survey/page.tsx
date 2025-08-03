@@ -79,7 +79,7 @@ function SurveyPageContent() {
               </Button>
             ))}
           </div>
-          <Suspense>
+          <Suspense fallback={null}>
             <SurveyErrorMessage />
           </Suspense>
         </div>

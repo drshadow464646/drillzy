@@ -53,11 +53,14 @@ export default function LoginPage() {
                                     <Input id="password-login" name="password" type="password" required />
                                 </div>
                                 <div className="text-right">
-                                    <Button variant="link" size="sm" className="p-0 h-auto" formAction={resetPassword}>
-                                        Forgot Password?
-                                    </Button>
+                                    {/* The user needs to input their email to get a reset link */}
                                 </div>
                                 <Button formAction={login} className="w-full">Login</Button>
+                                <form>
+                                    <Button variant="link" size="sm" className="p-0 h-auto w-full" formAction={resetPassword}>
+                                        Forgot Password?
+                                    </Button>
+                                </form>
                             </form>
                         </CardContent>
                     </Card>

@@ -7,7 +7,9 @@ import type {SurveyAnswer} from '@/lib/types';
 import {calculateSkillProfile} from '@/ai/flows/calculate-skill-profile';
 
 export async function submitSurvey(answers: SurveyAnswer[]) {
-  const supabase = createClient();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
   const {
     data: {user},

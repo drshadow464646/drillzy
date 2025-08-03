@@ -8,7 +8,9 @@ export async function updateSession(request: NextRequest) {
     request,
   });
 
-  const supabase = createClient();
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL!
+  const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
+  const supabase = createClient(supabaseUrl, supabaseAnonKey);
 
   const {
     data: {user},
@@ -21,7 +23,7 @@ export async function updateSession(request: NextRequest) {
   );
   
   // CHECK IF THE ROUTE IS A GUEST ROUTE
-  const guestRoutes = ['/login', '/reset-password'];
+  const guestRoutes = ['/login', '/reset-password', '/forgot-password'];
   const isGuestRoute = guestRoutes.some((path) =>
     request.nextUrl.pathname.startsWith(path)
   );

@@ -33,7 +33,7 @@ const calculateStreak = (history: SkillHistoryItem[]): number => {
     const todayStr = format(currentDate, 'yyyy-MM-dd');
     const yesterdayStr = format(subDays(currentDate, 1), 'yyyy-MM-dd');
 
-    if (!completedDates.has(todayStr) && !completedates.has(yesterdayStr)) {
+    if (!completedDates.has(todayStr) && !completedDates.has(yesterdayStr)) {
         return 0;
     }
 

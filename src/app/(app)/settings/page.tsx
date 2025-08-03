@@ -15,17 +15,18 @@ import {
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
 import { Label } from "@/components/ui/label"
 import { Separator } from '@/components/ui/separator';
-import { Palette, Sparkles, Waves, Type, Sun, Moon, Laptop, LogOut, Settings as SettingsIcon, User, Bell, Clock, BellRing, Layers, Sunrise } from 'lucide-react';
+import { Palette, Sparkles, Waves, Type, Sun, Moon, Laptop, LogOut, Settings as SettingsIcon, User, Bell, Clock, BellRing, Layers, Sunrise, Save, Loader2 } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Input } from '@/components/ui/input';
 import { useTheme } from '@/context/ThemeProvider';
 import { checkPermissions, requestPermissions, scheduleDailyNotification } from '@/lib/notifications';
 import { useToast } from '@/hooks/use-toast';
 import { Capacitor } from '@capacitor/core';
+import { updateUserName } from './actions';
 
 
 export default function SettingsPage() {
-    const { userData, isLoading, signOut } = useUserData();
+    const { userData, isLoading, signOut, refreshUserData } = useUserData();
     const { 
         theme: mode, 
         setTheme: setMode, 
@@ -40,6 +41,8 @@ export default function SettingsPage() {
     const [isClient, setIsClient] = useState(false);
     const [reminderTime, setReminderTime] = useState("09:00");
     const [hasNotificationPermission, setHasNotificationPermission] = useState(false);
+    const [name, setName] = useState('');
+    const [isSavingName, setIsSavingName] = useState(false);
     const { toast } = useToast();
     const isNative = Capacitor.isNativePlatform();
 
@@ -58,6 +61,32 @@ export default function SettingsPage() {
         setIsClient(true);
         updatePermissionStatus();
     }, [isNative]);
+
+    useEffect(() => {
+        if (userData?.name) {
+            setName(userData.name);
+        }
+    }, [userData?.name]);
+
+    const handleSaveName = async () => {
+        if (name === userData?.name || !name.trim()) return;
+        setIsSavingName(true);
+        const { error } = await updateUserName(name);
+        if (error) {
+            toast({
+                title: 'Error',
+                description: error,
+                variant: 'destructive',
+            });
+        } else {
+            await refreshUserData();
+            toast({
+                title: 'Success!',
+                description: 'Your name has been updated.',
+            });
+        }
+        setIsSavingName(false);
+    };
 
     const handlePermissionRequest = async () => {
         const granted = await requestPermissions();
@@ -115,6 +144,8 @@ export default function SettingsPage() {
         );
     }
 
+    const isNameChanged = name !== userData.name;
+
     return (
         <div className="p-4 min-h-screen">
             <div className="max-w-3xl mx-auto">
@@ -141,7 +172,14 @@ export default function SettingsPage() {
                                 <h3 className="text-lg font-semibold">Your Name</h3>
                                 <p className="text-muted-foreground text-sm">This is how your name will appear on the leaderboard.</p>
                             </div>
-                            <Input defaultValue={userData.name} className="w-full sm:w-[220px]" disabled />
+                            <div className="flex items-center gap-2 w-full sm:w-auto">
+                                <Input value={name} onChange={(e) => setName(e.target.value)} className="w-full sm:w-[220px]" />
+                                {isNameChanged && (
+                                    <Button onClick={handleSaveName} disabled={isSavingName} size="icon">
+                                        {isSavingName ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+                                    </Button>
+                                )}
+                            </div>
                         </div>
                     </div>
 

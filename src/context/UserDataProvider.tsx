@@ -15,6 +15,7 @@ interface UserDataContextType {
   burnSkill: () => Promise<void>;
   completeSkillForToday: () => Promise<void>;
   assignSkillForToday: () => void;
+  refreshUserData: () => Promise<void>;
 }
 
 const UserDataContext = createContext<UserDataContextType | undefined>(undefined);
@@ -32,7 +33,7 @@ const calculateStreak = (history: SkillHistoryItem[]): number => {
     const todayStr = format(currentDate, 'yyyy-MM-dd');
     const yesterdayStr = format(subDays(currentDate, 1), 'yyyy-MM-dd');
 
-    if (!completedDates.has(todayStr) && !completedDates.has(yesterdayStr)) {
+    if (!completedDates.has(todayStr) && !completedates.has(yesterdayStr)) {
         return 0;
     }
 
@@ -58,36 +59,36 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
+  const initializeUser = useCallback(async () => {
+    setIsLoading(true);
+    const { data: { user } } = await supabase.auth.getUser();
+
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('name, category')
+        .eq('id', user.id)
+        .single();
+      
+      const localHistoryStr = localStorage.getItem(`skillHistory_${user.id}`);
+      const localHistory: SkillHistoryItem[] = localHistoryStr ? JSON.parse(localHistoryStr) : [];
+      
+      setUserData({
+        id: user.id,
+        name: profile?.name || user.user_metadata.name || 'Learner',
+        category: profile?.category || null,
+        skillHistory: localHistory,
+        streakCount: calculateStreak(localHistory),
+      });
+
+    } else {
+      setUserData(null);
+    }
+    setIsLoading(false);
+  }, [supabase]);
+
   // Effect to load user from Supabase and local storage
   useEffect(() => {
-    const initializeUser = async () => {
-      setIsLoading(true);
-      const { data: { user } } = await supabase.auth.getUser();
-
-      if (user) {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('name, category')
-          .eq('id', user.id)
-          .single();
-        
-        const localHistoryStr = localStorage.getItem(`skillHistory_${user.id}`);
-        const localHistory: SkillHistoryItem[] = localHistoryStr ? JSON.parse(localHistoryStr) : [];
-        
-        setUserData({
-          id: user.id,
-          name: profile?.name || user.user_metadata.name || 'Learner',
-          category: profile?.category || null,
-          skillHistory: localHistory,
-          streakCount: calculateStreak(localHistory),
-        });
-
-      } else {
-        setUserData(null);
-      }
-      setIsLoading(false);
-    };
-
     initializeUser();
 
     const { data: authListener } = supabase.auth.onAuthStateChange(
@@ -105,7 +106,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         authListener.subscription.unsubscribe();
     };
 
-  }, [supabase, router]);
+  }, [supabase, router, initializeUser]);
 
 
   // Effect to save history to local storage whenever it changes
@@ -169,7 +170,8 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     burnSkill,
     completeSkillForToday,
     assignSkillForToday,
-  }), [userData, isLoading, signOut, burnSkill, completeSkillForToday, assignSkillForToday]);
+    refreshUserData: initializeUser
+  }), [userData, isLoading, signOut, burnSkill, completeSkillForToday, assignSkillForToday, initializeUser]);
 
   return (
     <UserDataContext.Provider value={value}>

@@ -1,7 +1,7 @@
 
 "use client";
 
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { surveyQuestions } from '@/lib/skills';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
@@ -10,13 +10,19 @@ import type { SurveyAnswer } from '@/lib/types';
 import { submitSurvey } from './actions';
 import { useSearchParams } from 'next/navigation';
 
-export default function SurveyPage() {
+function SurveyErrorMessage() {
+    const searchParams = useSearchParams();
+    const error = searchParams.get('message');
+
+    if (!error) return null;
+
+    return <p className="mt-4 text-sm text-destructive">{error}</p>;
+}
+
+function SurveyPageContent() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<SurveyAnswer[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  
-  const searchParams = useSearchParams();
-  const error = searchParams.get('message');
 
   const handleAnswer = async (answerText: string) => {
     const newAnswers: SurveyAnswer[] = [
@@ -73,11 +79,21 @@ export default function SurveyPage() {
               </Button>
             ))}
           </div>
-          {error && (
-            <p className="mt-4 text-sm text-destructive">{error}</p>
-          )}
+          <SurveyErrorMessage />
         </div>
       </main>
     </div>
   );
+}
+
+export default function SurveyPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex h-screen w-full flex-col items-center justify-center">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+        }>
+            <SurveyPageContent />
+        </Suspense>
+    )
 }

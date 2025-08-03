@@ -1,6 +1,7 @@
 
 "use client";
 
+import { Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -9,11 +10,22 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { login, signup } from './actions';
 import { useSearchParams } from 'next/navigation';
 import Link from 'next/link';
+import { Loader2 } from 'lucide-react';
 
-export default function LoginPage() {
+function LoginMessage() {
     const searchParams = useSearchParams();
     const message = searchParams.get('message');
 
+    if (!message) return null;
+
+    return (
+        <p className="mt-4 p-4 bg-foreground/10 text-foreground text-center rounded-md">
+            {message}
+        </p>
+    )
+}
+
+function LoginPageContent() {
     return (
         <div className="flex flex-col items-center justify-center min-h-screen p-4">
             <div className="flex flex-col items-center text-center mb-8">
@@ -89,12 +101,19 @@ export default function LoginPage() {
                     </Card>
                 </TabsContent>
             </Tabs>
-
-             {message && (
-                <p className="mt-4 p-4 bg-foreground/10 text-foreground text-center rounded-md">
-                    {message}
-                </p>
-            )}
+            <LoginMessage />
         </div>
     );
+}
+
+export default function LoginPage() {
+    return (
+        <Suspense fallback={
+            <div className="flex h-screen w-full flex-col items-center justify-center">
+                <Loader2 className="h-12 w-12 animate-spin text-primary" />
+            </div>
+        }>
+            <LoginPageContent />
+        </Suspense>
+    )
 }

@@ -4,11 +4,11 @@
   "private": true,
   "scripts": {
     "dev": "next dev",
-    "build": "next build && next export",
+    "build": "next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
-    "sync:android": "npm run build && npx cap add android && npx cap sync android"
+    "sync:android": "npx cap sync android"
   },
   "dependencies": {
     "@capacitor/android": "^6.0.0",

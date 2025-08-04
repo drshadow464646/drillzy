@@ -20,40 +20,6 @@ interface UserDataContextType {
 
 const UserDataContext = createContext<UserDataContextType | undefined>(undefined);
 
-const calculateStreak = (history: SkillHistoryItem[]): number => {
-    const completedDates = new Set(
-        history.filter(h => h.completed).map(h => format(parseISO(h.date), 'yyyy-MM-dd'))
-    );
-
-    if (completedDates.size === 0) return 0;
-
-    let streak = 0;
-    let currentDate = new Date();
-
-    const todayStr = format(currentDate, 'yyyy-MM-dd');
-    const yesterdayStr = format(subDays(currentDate, 1), 'yyyy-MM-dd');
-
-    if (!completedDates.has(todayStr) && !completedDates.has(yesterdayStr)) {
-        return 0;
-    }
-    
-    if (!completedDates.has(todayStr)) {
-        currentDate = subDays(currentDate, 1);
-    }
-    
-    while (true) {
-        const dateStr = format(currentDate, 'yyyy-MM-dd');
-        if (completedDates.has(dateStr)) {
-            streak++;
-            currentDate = subDays(currentDate, 1);
-        } else {
-            break; 
-        }
-    }
-    return streak;
-};
-
-
 export function UserDataProvider({ children }: { children: ReactNode }) {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -81,17 +47,21 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         console.error("Error fetching skill history:", historyError);
       }
       
-      const skillHistory = (history || []).map(item => ({
-          ...item,
-          date: format(parseISO(item.date), 'yyyy-MM-dd'),
-      }));
+      const skillHistory = history || [];
+
+      // Call the new SQL function to calculate the streak
+      const { data: streakCount, error: streakError } = await supabase.rpc('calculate_streak', { user_id_param: user.id });
+
+      if (streakError) {
+        console.error("Error fetching streak:", streakError);
+      }
 
       setUserData({
         id: user.id,
         name: profile?.name || user.user_metadata.name || 'Learner',
         category: profile?.category || null,
-        skillHistory: skillHistory,
-        streakCount: calculateStreak(skillHistory),
+        skillHistory: skillHistory as SkillHistoryItem[],
+        streakCount: streakCount || 0,
       });
 
     } else {

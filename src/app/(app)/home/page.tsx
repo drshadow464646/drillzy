@@ -7,7 +7,6 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Zap, CornerDownRight, Check, BrainCircuit, BarChartHorizontal, TrendingUp, Lightbulb, BellRing } from 'lucide-react';
-import { getSkillByIdAction } from '@/app/(app)/actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, parseISO } from 'date-fns';
 import type { SkillHistoryItem } from '@/lib/types';
@@ -89,7 +88,6 @@ export default function HomePage() {
   const router = useRouter();
   const hasAssignedSkill = useRef(false);
   const [isClient, setIsClient] = useState(false);
-  const [skillText, setSkillText] = useState('');
 
   useEffect(() => {
     setIsClient(true);
@@ -108,25 +106,11 @@ export default function HomePage() {
     return userData.skillHistory.find(item => item.date === todayStr);
   }, [userData, isClient]);
   
-  useEffect(() => {
-    async function fetchSkillText() {
-        if (!todayHistoryItem) {
-            setSkillText('');
-            return;
-        };
-        if (todayHistoryItem.skill_id === "NO_SKILLS_LEFT") {
-            setSkillText("You've unlocked all skills! 🏆");
-            return;
-        };
-        const skill = await getSkillByIdAction(todayHistoryItem.skill_id);
-        setSkillText(skill?.text || '');
-    }
-    fetchSkillText();
-  }, [todayHistoryItem]);
-
-
+  const skillText = todayHistoryItem?.skill_id || '';
   const isCompleted = todayHistoryItem?.completed ?? false;
-  const isNoSkillsLeft = todayHistoryItem?.skill_id === "NO_SKILLS_LEFT";
+  const isNoSkillsLeft = skillText === "NO_SKILLS_LEFT" || skillText === "GENERATING";
+  const isGenerating = skillText === "GENERATING";
+
 
   if (isLoading || !userData || !isClient) {
     return (
@@ -166,7 +150,12 @@ export default function HomePage() {
             </CardTitle>
           </CardHeader>
           <CardContent className="min-h-[120px] sm:min-h-[150px] flex items-center justify-center">
-            {skillText ? (
+            {isGenerating ? (
+                 <div className="flex flex-col items-center gap-2">
+                    <BrainCircuit className="h-8 w-8 text-primary animate-pulse" />
+                    <p className="text-muted-foreground">Generating a new skill for you...</p>
+                 </div>
+            ) : skillText ? (
                  <p className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">
                     {skillText}
                 </p>

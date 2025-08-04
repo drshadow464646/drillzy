@@ -5,8 +5,8 @@ import React, { createContext, useContext, useState, ReactNode, useCallback, use
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { UserData, SkillHistoryItem } from '@/lib/types';
-import { getNewSkillAction } from '@/app/(app)/actions';
-import { format, subDays, parseISO } from 'date-fns';
+import { generateSkill } from '@/ai/flows/generate-skill-flow';
+import { format, subDays, parseISO, isToday } from 'date-fns';
 
 interface UserDataContextType {
   userData: UserData | null;
@@ -21,6 +21,8 @@ interface UserDataContextType {
 const UserDataContext = createContext<UserDataContextType | undefined>(undefined);
 
 const calculateStreak = (history: SkillHistoryItem[]): number => {
+    if (!history || history.length === 0) return 0;
+    
     const completedDates = new Set(
         history.filter(h => h.completed).map(h => format(parseISO(h.date), 'yyyy-MM-dd'))
     );
@@ -29,15 +31,9 @@ const calculateStreak = (history: SkillHistoryItem[]): number => {
 
     let streak = 0;
     let currentDate = new Date();
-
-    const todayStr = format(currentDate, 'yyyy-MM-dd');
-    const yesterdayStr = format(subDays(currentDate, 1), 'yyyy-MM-dd');
-
-    if (!completedDates.has(todayStr) && !completedDates.has(yesterdayStr)) {
-        return 0;
-    }
     
-    if (!completedDates.has(todayStr)) {
+    // If today is not completed, start checking from yesterday
+    if (!completedDates.has(format(currentDate, 'yyyy-MM-dd'))) {
         currentDate = subDays(currentDate, 1);
     }
     
@@ -117,6 +113,49 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         authListener.subscription.unsubscribe();
     };
   }, [supabase, router, refreshUserData]);
+  
+  const performSkillGeneration = async (isBurn: boolean = false) => {
+    if (!userData || !userData.category) return;
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+
+    const existingSkills = userData.skillHistory
+        .filter(item => !(isBurn && item.date === todayStr)) // Exclude today's skill if burning
+        .map(item => item.skill_id);
+
+    try {
+        const { text } = await generateSkill({
+            category: userData.category,
+            existingSkills,
+        });
+
+        const { error } = await supabase
+            .from('skill_history')
+            .update({ skill_id: text })
+            .eq('user_id', userData.id)
+            .eq('date', todayStr);
+
+        if (error) throw error;
+        
+        setUserData(prev => {
+            if (!prev) return null;
+            const newHistory = prev.skillHistory.map(item =>
+                item.date === todayStr ? { ...item, skill_id: text, completed: false } : item
+            );
+            return { ...prev, skillHistory: newHistory };
+        });
+
+    } catch (err) {
+        console.error("Error generating or saving skill:", err);
+         setUserData(prev => {
+            if (!prev) return null;
+            const newHistory = prev.skillHistory.map(item =>
+                item.date === todayStr ? { ...item, skill_id: "Error generating skill. Please try again." } : item
+            );
+            return { ...prev, skillHistory: newHistory };
+        });
+    }
+};
+
 
   const assignSkillForToday = useCallback(async () => {
     if (!userData) return;
@@ -125,65 +164,54 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
 
     if (hasSkillForToday) return;
 
-    const seenIds = userData.skillHistory.map(item => item.skill_id);
-    const newSkill = await getNewSkillAction(seenIds, userData.category || undefined);
-
-    const newSkillHistoryItem: Omit<SkillHistoryItem, 'user_id'> & { user_id?: string } = {
+    // Create a placeholder record first
+    const newSkillHistoryItem = {
         date: todayStr,
-        skill_id: newSkill ? newSkill.id : "NO_SKILLS_LEFT",
-        completed: newSkill ? false : true,
+        skill_id: "GENERATING", // Placeholder text
+        completed: false,
+        user_id: userData.id
     };
 
     const { data, error } = await supabase
       .from('skill_history')
-      .insert({ ...newSkillHistoryItem, user_id: userData.id })
+      .insert(newSkillHistoryItem)
       .select()
       .single();
 
     if (error) {
-        console.error("Error assigning skill:", error);
+        console.error("Error creating placeholder skill:", error);
         return;
     }
-
+    
+    // Optimistically update UI
     setUserData(prev => {
         if (!prev) return null;
         const newHistory = [data, ...prev.skillHistory];
         return { ...prev, skillHistory: newHistory };
     });
+
+    // Now, generate the skill
+    await performSkillGeneration();
+
   }, [userData, supabase]);
 
   const burnSkill = useCallback(async () => {
       if (!userData) return;
       const todayStr = format(new Date(), 'yyyy-MM-dd');
       
-      // Optimistically find a new skill on the client
-      const seenIds = userData.skillHistory.filter(item => item.date !== todayStr).map(item => item.skill_id);
-      const newSkill = await getNewSkillAction(seenIds, userData.category || undefined);
-      
-      const newSkillId = newSkill ? newSkill.id : "NO_SKILLS_LEFT";
-      const completed = !newSkill;
-      
-      // Optimistically update the UI
+      // Optimistically update the UI to show generating state
       setUserData(prev => {
           if (!prev) return null;
           const newHistory = prev.skillHistory.map(item => 
-              item.date === todayStr ? { ...item, skill_id: newSkillId, completed: completed } : item
+              item.date === todayStr ? { ...item, skill_id: "GENERATING", completed: false } : item
           );
           return { ...prev, skillHistory: newHistory };
       });
+      
+      // Generate the new skill
+      await performSkillGeneration(true);
 
-      const { error } = await supabase
-        .from('skill_history')
-        .update({ skill_id: newSkillId, completed: completed })
-        .eq('user_id', userData.id)
-        .eq('date', todayStr);
-        
-      if (error) {
-          console.error("Error burning skill:", error);
-          // Revert the optimistic update on error
-          refreshUserData();
-      }
-  }, [userData, supabase, refreshUserData]);
+  }, [userData, supabase]);
   
   const completeSkillForToday = useCallback(async () => {
     if (!userData) return;

@@ -17,7 +17,7 @@ const CumulativeSkillsChart: React.FC<CumulativeSkillsChartProps> = ({ history }
 
     React.useEffect(() => {
         const completedHistory = history
-            .filter(item => item.completed && item.skill_id !== "NO_SKILLS_LEFT")
+            .filter(item => item.completed && item.skill_id !== "NO_SKILLS_LEFT" && item.skill_id !== 'GENERATING')
             .sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime());
 
         if (completedHistory.length === 0) {

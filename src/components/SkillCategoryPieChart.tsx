@@ -3,8 +3,7 @@
 
 import * as React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { getSkillByIdAction } from '@/app/(app)/actions';
-import type { Skill, SkillHistoryItem } from '@/lib/types';
+import type { SkillHistoryItem } from '@/lib/types';
 import { Skeleton } from './ui/skeleton';
 
 interface SkillCategoryPieChartProps {
@@ -33,7 +32,11 @@ const SkillCategoryPieChart: React.FC<SkillCategoryPieChartProps> = ({ history }
 
     React.useEffect(() => {
         async function processHistory() {
-            const counts = {
+            // This component is now harder to implement because skill category is not stored directly.
+            // For now, we will just show a placeholder. A more complex implementation would
+            // require fetching skill details or storing category in history.
+            // Let's assume a dummy distribution for now.
+             const counts = {
                 thinker: 0,
                 builder: 0,
                 creator: 0,
@@ -41,25 +44,13 @@ const SkillCategoryPieChart: React.FC<SkillCategoryPieChartProps> = ({ history }
             };
 
             const completedSkillItems = history
-              .filter(item => item.completed && item.skill_id !== 'NO_SKILLS_LEFT');
+              .filter(item => item.completed && item.skill_id !== 'NO_SKILLS_LEFT' && item.skill_id !== 'GENERATING');
 
-            const skillPromises = completedSkillItems.map(item => getSkillByIdAction(item.skill_id));
-            const completedSkills = (await Promise.all(skillPromises)).filter(Boolean) as Skill[];
-
-            completedSkills.forEach(skill => {
-                if (skill && counts.hasOwnProperty(skill.category)) {
-                    counts[skill.category as keyof typeof counts]++;
-                }
-            });
+            // Since we don't have categories, we can't build this chart accurately.
+            // We'll leave it blank for now. A future implementation could store
+            // the category of the generated skill in the history table.
             
-            const data = [
-                    { name: 'Thinker', value: counts.thinker },
-                    { name: 'Creator', value: counts.creator },
-                    { name: 'Builder', value: counts.builder },
-                    { name: 'Connector', value: counts.connector },
-                ].filter(d => d.value > 0);
-            
-            setCategoryData(data);
+            setCategoryData([]);
             setIsLoading(false);
         }
 
@@ -69,14 +60,12 @@ const SkillCategoryPieChart: React.FC<SkillCategoryPieChartProps> = ({ history }
     if (isLoading) {
         return <Skeleton className="w-full h-full" />;
     }
-
-    const total = categoryData.reduce((sum, item) => sum + item.value, 0);
-
-    if (total === 0) {
+    
+    if (categoryData.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center h-full text-center">
-                <p className="text-muted-foreground font-semibold">No skills completed yet!</p>
-                <p className="text-sm text-muted-foreground mt-1">Complete skills to see your category breakdown.</p>
+                <p className="text-muted-foreground font-semibold">Category data not available.</p>
+                <p className="text-sm text-muted-foreground mt-1">Skill categories will be analyzed in a future update!</p>
             </div>
         )
     }

@@ -8,7 +8,6 @@ import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Award, CalendarCheck, Flame, PieChart as PieChartIcon, Quote, Sparkles, Star, Trophy } from 'lucide-react';
 import { format, isSameDay, parseISO } from 'date-fns';
-import { getSkillByIdAction } from '@/app/(app)/actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { DayModifiers } from 'react-day-picker';
 import type { Skill, SkillHistoryItem } from '@/lib/types';
@@ -40,65 +39,55 @@ export default function StreakPage() {
   }, []);
 
   useEffect(() => {
-    async function fetchCurrentSkill() {
-        if (!isClient || !userData || !userData.skillHistory.length) {
-            setCurrentSkillText("Loading skill...");
-            return;
-        };
-        
-        const todayStr = format(new Date(), 'yyyy-MM-dd');
-        const todayHistoryItem = userData.skillHistory.find(item => item.date === todayStr);
-        
-        if (!todayHistoryItem) {
-            setCurrentSkillText("Go to the Home screen to get your skill for today!");
-            return;
-        }
-
-        if (todayHistoryItem.skill_id === "NO_SKILLS_LEFT") {
-            setCurrentSkillText("You've unlocked all skills! 🏆");
-            return;
-        }
-        
-        const skill = await getSkillByIdAction(todayHistoryItem.skill_id);
-        setCurrentSkillText(skill?.text || "Loading skill...");
+    if (!isClient || !userData || !userData.skillHistory.length) {
+        setCurrentSkillText("Loading skill...");
+        return;
+    };
+    
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const todayHistoryItem = userData.skillHistory.find(item => item.date === todayStr);
+    
+    if (!todayHistoryItem) {
+        setCurrentSkillText("Go to the Home screen to get your skill for today!");
+        return;
     }
-    fetchCurrentSkill();
+
+    if (todayHistoryItem.skill_id === "NO_SKILLS_LEFT" || todayHistoryItem.skill_id === "GENERATING") {
+        setCurrentSkillText("Generating your skill on the Home screen...");
+        return;
+    }
+    
+    setCurrentSkillText(todayHistoryItem.skill_id);
   }, [userData, isClient]);
 
   useEffect(() => {
     if(userData) {
-      setCompletedSkills(userData.skillHistory.filter(s => s.completed && s.skill_id !== 'NO_SKILLS_LEFT'));
+      setCompletedSkills(userData.skillHistory.filter(s => s.completed && s.skill_id !== 'NO_SKILLS_LEFT' && s.skill_id !== 'GENERATING'));
     }
   }, [userData])
 
   const completedDays = useMemo(() => {
     if (!isClient || !userData) return [];
     return userData.skillHistory
-        .filter(item => item.completed && item.skill_id !== "NO_SKILLS_LEFT")
+        .filter(item => item.completed && item.skill_id !== "NO_SKILLS_LEFT" && item.skill_id !== 'GENERATING')
         .map(item => parseISO(item.date));
   }, [userData, isClient]);
 
   useEffect(() => {
-    async function fetchSelectedSkill() {
-        if (!selectedDay || !userData) {
-            setSelectedSkillInfo(null);
-            return;
-        };
-        const dateStr = format(selectedDay, 'yyyy-MM-dd');
-        const historyItem = userData.skillHistory.find(item => item.date === dateStr && item.completed);
-        if (historyItem && historyItem.skill_id !== 'NO_SKILLS_LEFT') {
-            const skill = await getSkillByIdAction(historyItem.skill_id);
-            if (skill) {
-                setSelectedSkillInfo({
-                    date: format(selectedDay, 'PPP'),
-                    text: skill.text
-                });
-            }
-        } else {
-            setSelectedSkillInfo(null);
-        }
+    if (!selectedDay || !userData) {
+        setSelectedSkillInfo(null);
+        return;
+    };
+    const dateStr = format(selectedDay, 'yyyy-MM-dd');
+    const historyItem = userData.skillHistory.find(item => item.date === dateStr && item.completed);
+    if (historyItem && historyItem.skill_id !== 'NO_SKILLS_LEFT' && historyItem.skill_id !== 'GENERATING') {
+        setSelectedSkillInfo({
+            date: format(selectedDay, 'PPP'),
+            text: historyItem.skill_id
+        });
+    } else {
+        setSelectedSkillInfo(null);
     }
-    fetchSelectedSkill();
   }, [selectedDay, userData]);
 
 
@@ -267,17 +256,13 @@ export default function StreakPage() {
 }
 
 function CompletedSkillItem({ item }: { item: SkillHistoryItem }) {
-    const [skill, setSkill] = useState<Skill | null>(null);
-
-    useEffect(() => {
-        getSkillByIdAction(item.skill_id).then(setSkill);
-    }, [item.skill_id]);
-
-    if (!skill) return <Skeleton className="h-10 w-full mb-2" />;
+    if (!item.skill_id || item.skill_id === 'NO_SKILLS_LEFT' || item.skill_id === 'GENERATING') {
+        return null;
+    }
 
     return (
         <li className="flex flex-col border-b pb-2 last:border-none">
-            <span className="text-sm font-semibold text-foreground">{skill.text}</span>
+            <span className="text-sm font-semibold text-foreground">{item.skill_id}</span>
             <span className="text-xs text-muted-foreground">{format(parseISO(item.date), 'PPP')}</span>
         </li>
     );

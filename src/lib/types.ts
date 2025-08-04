@@ -27,6 +27,7 @@ export interface SurveyQuestion {
   text: string;
   options: {
     text: string;
+    category: Category;
   }[];
 }
 

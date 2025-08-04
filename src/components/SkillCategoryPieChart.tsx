@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import { getSkillById } from '@/lib/skills';
+import { getSkillByIdAction } from '@/app/(app)/actions';
 import type { Skill, SkillHistoryItem } from '@/lib/types';
 import { Skeleton } from './ui/skeleton';
 
@@ -43,7 +43,7 @@ const SkillCategoryPieChart: React.FC<SkillCategoryPieChartProps> = ({ history }
             const completedSkillItems = history
               .filter(item => item.completed && item.skill_id !== 'NO_SKILLS_LEFT');
 
-            const skillPromises = completedSkillItems.map(item => getSkillById(item.skill_id));
+            const skillPromises = completedSkillItems.map(item => getSkillByIdAction(item.skill_id));
             const completedSkills = (await Promise.all(skillPromises)).filter(Boolean) as Skill[];
 
             completedSkills.forEach(skill => {

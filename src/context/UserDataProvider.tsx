@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, ReactNode, useCallback, use
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { UserData, SkillHistoryItem } from '@/lib/types';
-import { getNewSkill } from '@/lib/skills';
+import { getNewSkillAction } from '@/app/(app)/actions';
 import { format, subDays, parseISO } from 'date-fns';
 
 interface UserDataContextType {
@@ -126,7 +126,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     if (hasSkillForToday) return;
 
     const seenIds = userData.skillHistory.map(item => item.skill_id);
-    const newSkill = await getNewSkill(seenIds, userData.category || undefined);
+    const newSkill = await getNewSkillAction(seenIds, userData.category || undefined);
 
     const newSkillHistoryItem = {
         user_id: userData.id,
@@ -157,7 +157,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
       if (!userData) return;
       const todayStr = format(new Date(), 'yyyy-MM-dd');
       const seenIds = userData.skillHistory.filter(item => item.date !== todayStr).map(item => item.skill_id);
-      const newSkill = await getNewSkill(seenIds, userData.category || undefined);
+      const newSkill = await getNewSkillAction(seenIds, userData.category || undefined);
       
       const newSkillId = newSkill ? newSkill.id : "NO_SKILLS_LEFT";
       const completed = !newSkill;

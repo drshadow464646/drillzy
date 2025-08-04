@@ -93,8 +93,13 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const hasSkillForToday = userData.skillHistory.some(item => item.date === todayStr);
 
+    // If a skill has already been assigned for today, don't do anything.
+    // The initializeUser function has already fetched the correct state.
     if (hasSkillForToday) return;
 
+    // A skill has not been assigned. Let's assign one.
+    // We'll call initializeUser again after this to refresh the state.
+    setIsLoading(true);
     const seenIds = userData.skillHistory.map(item => item.skill_id);
     const newSkill = await getNewSkillAction(seenIds, userData.category || undefined);
 
@@ -105,7 +110,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         completed: newSkill ? false : true,
     };
 
-    const { data, error } = await supabase
+    const { error } = await supabase
       .from('skill_history')
       .insert(newSkillHistoryItem)
       .select()
@@ -113,15 +118,15 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
 
     if (error) {
         console.error("Error assigning skill:", error);
+        // Even if we error, we should probably stop loading
+        setIsLoading(false);
         return;
     }
 
-    setUserData(prev => {
-        if (!prev) return null;
-        const newHistory = [data, ...prev.skillHistory];
-        return { ...prev, skillHistory: newHistory };
-    });
-  }, [userData, supabase]);
+    // Crucially, re-fetch all user data to ensure UI consistency
+    await initializeUser();
+
+  }, [userData, supabase, initializeUser]);
 
   const burnSkill = useCallback(async () => {
       if (!userData) return;

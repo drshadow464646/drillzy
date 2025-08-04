@@ -3,29 +3,71 @@
 
 import * as React from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { format, parseISO } from 'date-fns';
-import type { CumulativeGrowthItem } from '@/lib/types';
+import { format, parseISO, eachDayOfInterval, startOfDay } from 'date-fns';
+import type { SkillHistoryItem } from '@/lib/types';
+import { Skeleton } from './ui/skeleton';
 
 interface CumulativeSkillsChartProps {
-    data: CumulativeGrowthItem[];
+    history: SkillHistoryItem[];
 }
 
-const CumulativeSkillsChart: React.FC<CumulativeSkillsChartProps> = ({ data }) => {
+const CumulativeSkillsChart: React.FC<CumulativeSkillsChartProps> = ({ history }) => {
+    const [chartData, setChartData] = React.useState<any[]>([]);
+    const [isLoading, setIsLoading] = React.useState(true);
 
-    const chartData = React.useMemo(() => {
-        if (!data) return [];
-        return data.map(item => ({
-            date: format(parseISO(item.date), 'MMM d'),
-            Skills: item.total,
-        }));
-    }, [data]);
+    React.useEffect(() => {
+        const completedHistory = history
+            .filter(item => item.completed && item.skill_id !== "NO_SKILLS_LEFT")
+            .sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime());
 
-    if (!data) {
-        return (
-            <div className="flex flex-col items-center justify-center h-full text-center">
-                <p className="text-muted-foreground font-semibold">Loading data...</p>
-            </div>
-        )
+        if (completedHistory.length === 0) {
+            setIsLoading(false);
+            setChartData([]);
+            return;
+        }
+
+        const firstDay = startOfDay(parseISO(completedHistory[0].date));
+        const lastDay = startOfDay(new Date());
+        
+        if (firstDay > lastDay) {
+             const data = [{
+                date: format(firstDay, 'MMM d'),
+                Skills: completedHistory.length
+            }];
+            setChartData(data);
+            setIsLoading(false);
+            return;
+        }
+
+        const interval = eachDayOfInterval({ start: firstDay, end: lastDay });
+
+        let cumulativeCount = 0;
+        const dateMap = new Map<string, number>();
+        completedHistory.forEach(item => {
+            const dateStr = format(parseISO(item.date), 'yyyy-MM-dd');
+            dateMap.set(dateStr, (dateMap.get(dateStr) || 0) + 1);
+        });
+        
+        let lastKnownCount = 0;
+        const data = interval.map(day => {
+            const dateStr = format(day, 'yyyy-MM-dd');
+            if (dateMap.has(dateStr)) {
+                cumulativeCount += dateMap.get(dateStr)!;
+            }
+            lastKnownCount = cumulativeCount;
+            return {
+                date: format(day, 'MMM d'),
+                Skills: lastKnownCount,
+            };
+        });
+
+        setChartData(data);
+        setIsLoading(false);
+
+    }, [history]);
+
+    if (isLoading) {
+        return <Skeleton className="w-full h-full" />;
     }
 
     if (chartData.length < 2) {

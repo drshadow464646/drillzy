@@ -3,29 +3,42 @@
 
 import * as React from 'react';
 import { Bar, BarChart, XAxis, YAxis, ResponsiveContainer, Tooltip } from 'recharts';
-import { format, parseISO } from 'date-fns';
-import type { WeeklyProgressItem } from '@/lib/types';
+import { format, subDays, isSameDay, parseISO } from 'date-fns';
+import type { SkillHistoryItem } from '@/lib/types';
+import { Skeleton } from './ui/skeleton';
 
 interface WeeklyProgressChartProps {
-    data: WeeklyProgressItem[];
+    history: SkillHistoryItem[];
 }
 
-const WeeklyProgressChart: React.FC<WeeklyProgressChartProps> = ({ data }) => {
-    
-    const chartData = React.useMemo(() => {
-        if (!data) return [];
-        return data.map(item => ({
-            name: format(parseISO(item.date), 'E'), // e.g., 'Mon'
-            completed: item.completed > 0 ? 1 : 0, // Ensure it's 0 or 1 for the chart's Y-axis domain
-        }));
-    }, [data]);
+const WeeklyProgressChart: React.FC<WeeklyProgressChartProps> = ({ history }) => {
+    const [chartData, setChartData] = React.useState<Array<{ name: string; completed: number; }>>([]);
+    const [isLoading, setIsLoading] = React.useState(true);
 
-    if (!data) {
-        return (
-            <div className="flex flex-col items-center justify-center h-full text-center">
-                <p className="text-muted-foreground font-semibold">Loading data...</p>
-            </div>
-        )
+    React.useEffect(() => {
+        const last7Days = Array.from({ length: 7 }).map((_, i) => subDays(new Date(), i)).reverse();
+        const completedHistory = history.filter(item => item.completed);
+        
+        const data = last7Days.map(day => {
+            const dayStr = format(day, 'E'); // e.g., 'Mon'
+            const completedOnDay = completedHistory.some(item => {
+                try {
+                    return isSameDay(parseISO(item.date), day)
+                } catch (e) {
+                    return false;
+                }
+            });
+            return {
+                name: dayStr,
+                completed: completedOnDay ? 1 : 0,
+            };
+        });
+        setChartData(data);
+        setIsLoading(false);
+    }, [history]);
+    
+    if (isLoading) {
+        return <Skeleton className="h-full w-full" />;
     }
 
     const totalCompleted = chartData.reduce((sum, day) => sum + day.completed, 0);

@@ -3,17 +3,34 @@
 
 import * as React from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
-import type { CategoryCounts } from '@/lib/types';
+import { getSkillById } from '@/lib/skills';
+import type { SkillHistoryItem } from '@/lib/types';
+import { allSkills } from '@/lib/skills';
 
 interface SkillRadarChartProps {
-    data: CategoryCounts;
+    history: SkillHistoryItem[];
 }
 
-const SkillRadarChart: React.FC<SkillRadarChartProps> = ({ data }) => {
+const SkillRadarChart: React.FC<SkillRadarChartProps> = ({ history }) => {
     const categoryData = React.useMemo(() => {
-        if (!data) return { data: [], total: 0 };
+        const counts = {
+            thinker: 0,
+            builder: 0,
+            creator: 0,
+            connector: 0,
+        };
+
+        const completedSkills = history
+          .filter(item => item.completed && item.skill_id !== 'NO_SKILLS_LEFT')
+          .map(item => getSkillById(item.skill_id))
+          .filter(Boolean);
         
-        const counts = data;
+        // This is a placeholder for now until we have categories for skills.
+        completedSkills.forEach((skill, index) => {
+            const category = ['thinker', 'builder', 'creator', 'connector'][index % 4];
+            counts[category as keyof typeof counts]++;
+        });
+        
         const maxCount = Math.max(...Object.values(counts), 3);
 
         return {
@@ -25,15 +42,7 @@ const SkillRadarChart: React.FC<SkillRadarChartProps> = ({ data }) => {
             ],
             total: Object.values(counts).reduce((sum, count) => sum + count, 0)
         }
-    }, [data]);
-
-    if (!data) {
-        return (
-            <div className="flex flex-col items-center justify-center h-64 text-center">
-                <p className="text-muted-foreground font-semibold">Loading data...</p>
-            </div>
-        )
-    }
+    }, [history]);
 
     if (categoryData.total === 0) {
         return (

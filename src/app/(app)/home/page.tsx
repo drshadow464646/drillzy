@@ -108,8 +108,8 @@ export default function HomePage() {
   
   const skillText = todayHistoryItem?.skill_id || '';
   const isCompleted = todayHistoryItem?.completed ?? false;
-  const isNoSkillsLeft = skillText === "NO_SKILLS_LEFT" || skillText === "GENERATING";
-  const isGenerating = skillText === "GENERATING";
+  const isNoSkillsLeft = skillText === "NO_SKILLS_LEFT";
+  const isGenerating = !skillText || skillText === "GENERATING";
 
 
   if (isLoading || !userData || !isClient) {
@@ -155,12 +155,16 @@ export default function HomePage() {
                     <BrainCircuit className="h-8 w-8 text-primary animate-pulse" />
                     <p className="text-muted-foreground">Finding a new skill for you...</p>
                  </div>
-            ) : skillText ? (
+            ) : isNoSkillsLeft ? (
+                <div className="flex flex-col items-center gap-2 text-center">
+                    <BrainCircuit className="h-8 w-8 text-primary" />
+                    <p className="text-lg font-semibold text-foreground">Wow, you've completed all available skills in this category!</p>
+                    <p className="text-muted-foreground text-sm">Check back later for new skills.</p>
+                 </div>
+            ) : (
                  <p className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">
                     {skillText}
                 </p>
-            ) : (
-                <Skeleton className="h-8 w-3/4" />
             )}
           </CardContent>
         </Card>
@@ -171,7 +175,7 @@ export default function HomePage() {
                     <Check className="h-6 w-6" />
                     <span>Great job! Skill completed.</span>
                 </div>
-            ) : !isNoSkillsLeft && (
+            ) : !isNoSkillsLeft && !isGenerating && (
                 <div className="grid grid-cols-1 gap-4 animate-in fade-in duration-300">
                      <Button size="lg" className="h-14 text-lg font-bold shadow-lg shadow-primary/20" onClick={completeSkillForToday}>
                         <Check className="h-6 w-6 mr-2"/>

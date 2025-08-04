@@ -12,9 +12,9 @@ interface UserDataContextType {
   userData: UserData | null;
   isLoading: boolean;
   signOut: () => Promise<void>;
-  burnSkill: () => Promise<void>; // This is now disabled, but we'll keep the function signature for now
+  burnSkill: () => Promise<void>;
   completeSkillForToday: () => Promise<void>;
-  assignSkillForToday: () => void;
+  assignSkillForToday: () => Promise<void>;
   refreshUserData: () => Promise<void>;
 }
 
@@ -32,6 +32,7 @@ const calculateStreak = (history: SkillHistoryItem[]): number => {
     let streak = 0;
     let currentDate = new Date();
     
+    // If today is not completed, start checking from yesterday
     if (!completedDates.has(format(currentDate, 'yyyy-MM-dd'))) {
         currentDate = subDays(currentDate, 1);
     }
@@ -56,7 +57,10 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
   const supabase = useMemo(() => createClient(), []);
 
   const refreshUserData = useCallback(async () => {
-    setIsLoading(true);
+    // Keep it loading on initial fetch
+    if (!userData) {
+      setIsLoading(true);
+    }
     const { data: { user } } = await supabase.auth.getUser();
 
     if (user) {
@@ -81,19 +85,21 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
           date: format(parseISO(item.date), 'yyyy-MM-dd'),
       }));
 
-      setUserData({
+      const newUserData = {
         id: user.id,
         name: profile?.name || user.user_metadata.name || 'Learner',
         category: profile?.category || null,
         skillHistory: skillHistory,
         streakCount: calculateStreak(skillHistory),
-      });
+      };
+
+      setUserData(newUserData);
 
     } else {
       setUserData(null);
     }
     setIsLoading(false);
-  }, [supabase]);
+  }, [supabase, userData]);
 
   useEffect(() => {
     refreshUserData();
@@ -118,24 +124,24 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
 
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const hasSkillForToday = userData.skillHistory.some(item => item.date === todayStr);
-
+    
     if (hasSkillForToday) {
-        return; // A skill is already assigned for today.
+        return;
     }
 
-    // Find a new skill from the pre-defined list.
+    setUserData(prev => prev ? ({ ...prev, skillHistory: [{date: todayStr, skill_id: "GENERATING", completed: false, user_id: prev.id }, ...prev.skillHistory] }) : null);
+
     const userCategorySkills = ALL_SKILLS.filter(s => s.category === userData.category);
-    const completedSkillIds = new Set(userData.skillHistory.map(h => h.skill_id));
+    const usedSkillIds = new Set(userData.skillHistory.map(h => h.skill_id));
 
     let newSkillText = "NO_SKILLS_LEFT";
     for (const skill of userCategorySkills) {
-        if (!completedSkillIds.has(skill.text)) {
+        if (!usedSkillIds.has(skill.text)) {
             newSkillText = skill.text;
             break;
         }
     }
 
-    // Create the new history record.
     const newSkillHistoryItem: Omit<SkillHistoryItem, 'user_id'> & { user_id: string } = {
         date: todayStr,
         skill_id: newSkillText,
@@ -143,38 +149,26 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         user_id: userData.id
     };
 
-    // Optimistically update UI
-    setUserData(prev => {
-        if (!prev) return null;
-        const optimisticHistoryItem = newSkillHistoryItem as SkillHistoryItem;
-        const newHistory = [optimisticHistoryItem, ...prev.skillHistory];
-        return { ...prev, skillHistory: newHistory };
-    });
-
-    // Save to Supabase
     const { error } = await supabase
       .from('skill_history')
       .insert(newSkillHistoryItem);
 
     if (error) {
         console.error("Error assigning new skill:", error);
-        // Revert optimistic update
-        await refreshUserData();
+        await refreshUserData(); // Revert on error
+    } else {
+        await refreshUserData(); // Refresh to get the new state from DB
     }
 }, [userData, supabase, refreshUserData]);
 
-
-  // The "burn" or "shuffle" functionality is no longer needed with a pre-defined list.
-  // We'll leave the function here to avoid breaking component props, but it will do nothing.
   const burnSkill = useCallback(async () => {
-    console.log("Shuffle skill is disabled.");
+    console.warn("Shuffle/burn skill is disabled.");
   }, []);
   
   const completeSkillForToday = useCallback(async () => {
     if (!userData) return;
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     
-    // Optimistically update the UI
     setUserData(prev => {
         if (!prev) return null;
         const newHistory = prev.skillHistory.map(item => 
@@ -192,8 +186,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
 
     if (error) {
         console.error("Error completing skill:", error);
-        // Revert the optimistic update on error
-        refreshUserData();
+        refreshUserData(); // Revert on error
     }
   }, [userData, supabase, refreshUserData]);
 

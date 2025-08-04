@@ -36,7 +36,7 @@ export type ProfileAnalysisOutput = z.infer<
   typeof ProfileAnalysisOutputSchema
 >;
 
-const skillProfilePrompt = ai.definePrompt({
+export const skillProfilePrompt = ai.definePrompt({
   name: 'skillProfilePrompt',
   input: {schema: ProfileAnalysisInputSchema},
   output: {schema: ProfileAnalysisOutputSchema},
@@ -58,27 +58,14 @@ Survey Answers:
 });
 
 export async function calculateSkillProfile(
-  answers: SurveyAnswer[],
-  // An optional callback function to stream the reasoning as it's generated.
-  onReasoningChunk?: (chunk: string) => void
+  answers: SurveyAnswer[]
 ): Promise<ProfileAnalysisOutput> {
-  const {stream, response} = ai.generateStream({
+  const { response } = ai.generateStream({
     prompt: skillProfilePrompt,
     input: {answers},
-    streaming: true,
+    streaming: false,
   });
 
-  // Stream the reasoning chunks to the callback.
-  if (onReasoningChunk) {
-    for await (const chunk of stream) {
-      const reasoning = chunk.output?.reasoning;
-      if (reasoning) {
-        onReasoningChunk(reasoning);
-      }
-    }
-  }
-
-  // Wait for the full response to be generated and return it.
   const result = await response;
   return result.output!;
 }

@@ -39,40 +39,47 @@ export async function submitSurvey(answers: SurveyAnswer[]) {
 }
 
 
-export async function* getProfileAnalysis(answers: SurveyAnswer[]) {
+export async function* getProfileAnalysis(answers: SurveyAnswer[]): AsyncGenerator<any> {
   const supabase = createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) {
-      // In a real app, you'd handle this more gracefully.
-      // For a stream, we can't redirect, so we'll send an error object.
       yield { error: 'User not authenticated' };
       return;
   }
 
   try {
-      let finalResponse: any = null;
+    const { stream, response } = ai.generateStream({
+        prompt: skillProfilePrompt,
+        input: { answers },
+        streaming: true,
+    });
 
-      await calculateSkillProfile(answers, (reasoningChunk) => {
-          // This is a server-side callback. We can't yield from here.
-          // We would need a different mechanism to stream this to the client.
-          // For now, let's just demonstrate the concept.
-          // In a real implementation, you'd use a pub/sub or websocket.
-      });
-      
-      const response = await calculateSkillProfile(answers);
-      finalResponse = response;
+    let reasoning = '';
+    for await (const chunk of stream) {
+        const partial = chunk.output?.reasoning;
+        if (partial) {
+            reasoning = partial;
+            yield { reasoning };
+        }
+    }
 
+    const finalResponse = await response;
+    const category = finalResponse.output?.category;
+    
+    if (category) {
+        const { error: profileError } = await supabase
+            .from('profiles')
+            .update({ category })
+            .eq('id', user.id);
 
-      const { error: profileError } = await supabase
-          .from('profiles')
-          .update({ category: finalResponse.category })
-          .eq('id', user.id);
-
-      if (profileError) {
-          throw profileError;
-      }
-      
-      yield { reasoning: finalResponse.reasoning, category: finalResponse.category, done: true };
+        if (profileError) {
+            throw profileError;
+        }
+        
+        yield { reasoning, category, done: true };
+    } else {
+        throw new Error("Could not determine user category.");
+    }
       
   } catch (error) {
       console.error('Error in getProfileAnalysis stream:', error);

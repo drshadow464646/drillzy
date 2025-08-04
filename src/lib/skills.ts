@@ -1,6 +1,6 @@
 
 import type { Category, Skill, SurveyQuestion } from './types';
-import { getSkillByIdAction, getNewSkillAction } from '@/app/(app)/actions';
+import { getSkillByIdAction, getNewSkillAction } from '@/lib/actions';
 
 
 export const surveyQuestions: SurveyQuestion[] = [

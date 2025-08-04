@@ -20,52 +20,62 @@ interface UserDataContextType {
 
 const UserDataContext = createContext<UserDataContextType | undefined>(undefined);
 
-interface UserDataProviderProps {
-    children: ReactNode;
-    initialData: UserData;
-}
-
-export function UserDataProvider({ children, initialData }: UserDataProviderProps) {
-  const [userData, setUserData] = useState<UserData | null>(initialData);
-  const [isLoading, setIsLoading] = useState<boolean>(!initialData);
+export function UserDataProvider({ children }: { children: ReactNode }) {
+  const [userData, setUserData] = useState<UserData | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
-  const refreshUserData = useCallback(async () => {
+  const initializeUser = useCallback(async () => {
+    setIsLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-        setUserData(null);
-        return;
-    }
 
-    // This function is now for refreshing data, so we can assume a user exists.
-    // We re-fetch everything to ensure data consistency after mutations.
-    const [profileRes, historyRes, streakRes] = await Promise.all([
-        supabase.from('profiles').select('name, category').eq('id', user.id).single(),
-        supabase.from('skill_history').select('*').eq('user_id', user.id).order('date', { ascending: false }),
-        supabase.rpc('calculate_streak', { user_id_param: user.id })
-    ]);
+    if (user) {
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('name, category')
+        .eq('id', user.id)
+        .single();
 
-    const { data: profile } = profileRes;
-    const { data: history } = historyRes;
-    const { data: streakCount } = streakRes;
+      const { data: history, error: historyError } = await supabase
+        .from('skill_history')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('date', { ascending: false });
 
-    setUserData({
+      if (historyError) {
+        console.error("Error fetching skill history:", historyError);
+      }
+
+      const skillHistory = history || [];
+
+      // Call the new SQL function to calculate the streak
+      const { data: streakCount, error: streakError } = await supabase.rpc('calculate_streak', { user_id_param: user.id });
+
+      if (streakError) {
+        console.error("Error fetching streak:", streakError);
+      }
+
+      setUserData({
         id: user.id,
         name: profile?.name || user.user_metadata.name || 'Learner',
         category: profile?.category || null,
-        skillHistory: (history as SkillHistoryItem[]) || [],
+        skillHistory: skillHistory as SkillHistoryItem[],
         streakCount: streakCount || 0,
-    });
+      });
+
+    } else {
+      setUserData(null);
+    }
     setIsLoading(false);
   }, [supabase]);
 
   useEffect(() => {
+    initializeUser();
     const { data: authListener } = supabase.auth.onAuthStateChange(
         (event, session) => {
             if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-                // When auth state changes on the client, refresh data
-                refreshUserData();
+                initializeUser();
             }
             if (event === 'SIGNED_OUT') {
                 setUserData(null);
@@ -76,7 +86,7 @@ export function UserDataProvider({ children, initialData }: UserDataProviderProp
      return () => {
         authListener.subscription.unsubscribe();
     };
-  }, [supabase, router, refreshUserData]);
+  }, [supabase, router, initializeUser]);
 
   const assignSkillForToday = useCallback(async () => {
     if (!userData) return;
@@ -118,7 +128,7 @@ export function UserDataProvider({ children, initialData }: UserDataProviderProp
       const todayStr = format(new Date(), 'yyyy-MM-dd');
       const seenIds = userData.skillHistory.filter(item => item.date !== todayStr).map(item => item.skill_id);
       const newSkill = await getNewSkillAction(seenIds, userData.category || undefined);
-      
+
       const newSkillId = newSkill ? newSkill.id : "NO_SKILLS_LEFT";
       const completed = !newSkill;
 
@@ -129,19 +139,19 @@ export function UserDataProvider({ children, initialData }: UserDataProviderProp
         .eq('date', todayStr)
         .select()
         .single();
-        
+
       if (error) {
           console.error("Error burning skill:", error);
           return;
       }
 
-      await refreshUserData(); // Re-fetch all data to ensure consistency
-  }, [userData, supabase, refreshUserData]);
-  
+      await initializeUser(); // Re-fetch all data to ensure consistency
+  }, [userData, supabase, initializeUser]);
+
   const completeSkillForToday = useCallback(async () => {
     if (!userData) return;
     const todayStr = format(new Date(), 'yyyy-MM-dd');
-    
+
     const { data, error } = await supabase
         .from('skill_history')
         .update({ completed: true })
@@ -154,14 +164,14 @@ export function UserDataProvider({ children, initialData }: UserDataProviderProp
         console.error("Error completing skill:", error);
         return;
     }
-    
-    await refreshUserData(); // Re-fetch to get updated streak count and history
-  }, [userData, supabase, refreshUserData]);
+
+    await initializeUser(); // Re-fetch to get updated streak count and history
+  }, [userData, supabase, initializeUser]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
   };
-  
+
   const value = useMemo(() => ({
     userData,
     isLoading,
@@ -169,8 +179,8 @@ export function UserDataProvider({ children, initialData }: UserDataProviderProp
     burnSkill,
     completeSkillForToday,
     assignSkillForToday,
-    refreshUserData
-  }), [userData, isLoading, signOut, burnSkill, completeSkillForToday, assignSkillForToday, refreshUserData]);
+    refreshUserData: initializeUser
+  }), [userData, isLoading, signOut, burnSkill, completeSkillForToday, assignSkillForToday, initializeUser]);
 
   return (
     <UserDataContext.Provider value={value}>

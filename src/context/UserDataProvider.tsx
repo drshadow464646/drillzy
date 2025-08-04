@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, ReactNode, useCallback, use
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { UserData, SkillHistoryItem } from '@/lib/types';
-import { getNewSkillAction } from '@/app/(app)/actions';
+import { generateSkill } from '@/ai/flows/generate-skill';
 import { format, subDays, parseISO } from 'date-fns';
 
 interface UserDataContextType {
@@ -89,68 +89,53 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
   }, [supabase, router, initializeUser]);
 
   const assignSkillForToday = useCallback(async () => {
-    if (!userData) return;
+    if (!userData || !userData.category) return;
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const hasSkillForToday = userData.skillHistory.some(item => item.date === todayStr);
 
-    // If a skill has already been assigned for today, don't do anything.
-    // The initializeUser function has already fetched the correct state.
     if (hasSkillForToday) return;
 
-    // A skill has not been assigned. Let's assign one.
-    // We'll call initializeUser again after this to refresh the state.
     setIsLoading(true);
-    const seenIds = userData.skillHistory.map(item => item.skill_id);
-    const newSkill = await getNewSkillAction(seenIds, userData.category || undefined);
+    const history = userData.skillHistory.map(item => item.skill_id);
+    const { skill } = await generateSkill({ category: userData.category, history });
 
     const newSkillHistoryItem = {
         user_id: userData.id,
         date: todayStr,
-        skill_id: newSkill ? newSkill.id : "NO_SKILLS_LEFT",
-        completed: newSkill ? false : true,
+        skill_id: skill,
+        completed: false,
     };
 
     const { error } = await supabase
       .from('skill_history')
-      .insert(newSkillHistoryItem)
-      .select()
-      .single();
+      .insert(newSkillHistoryItem);
 
     if (error) {
         console.error("Error assigning skill:", error);
-        // Even if we error, we should probably stop loading
-        setIsLoading(false);
-        return;
     }
 
-    // Crucially, re-fetch all user data to ensure UI consistency
     await initializeUser();
-
   }, [userData, supabase, initializeUser]);
 
   const burnSkill = useCallback(async () => {
-      if (!userData) return;
-      const todayStr = format(new Date(), 'yyyy-MM-dd');
-      const seenIds = userData.skillHistory.filter(item => item.date !== todayStr).map(item => item.skill_id);
-      const newSkill = await getNewSkillAction(seenIds, userData.category || undefined);
-      
-      const newSkillId = newSkill ? newSkill.id : "NO_SKILLS_LEFT";
-      const completed = !newSkill;
+    if (!userData || !userData.category) return;
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
 
-      const { data, error } = await supabase
-        .from('skill_history')
-        .update({ skill_id: newSkillId, completed: completed })
-        .eq('user_id', userData.id)
-        .eq('date', todayStr)
-        .select()
-        .single();
-        
-      if (error) {
-          console.error("Error burning skill:", error);
-          return;
-      }
+    setIsLoading(true);
+    const history = userData.skillHistory.map(item => item.skill_id);
+    const { skill } = await generateSkill({ category: userData.category, history });
 
-      await initializeUser(); // Re-fetch all data to ensure consistency
+    const { error } = await supabase
+      .from('skill_history')
+      .update({ skill_id: skill, completed: false })
+      .eq('user_id', userData.id)
+      .eq('date', todayStr);
+
+    if (error) {
+        console.error("Error burning skill:", error);
+    }
+
+    await initializeUser();
   }, [userData, supabase, initializeUser]);
   
   const completeSkillForToday = useCallback(async () => {

@@ -34,62 +34,41 @@ export type ProfileAnalysisOutput = z.infer<
   typeof ProfileAnalysisOutputSchema
 >;
 
-// Placeholder function until a reliable model integration is confirmed.
-const calculateSkillProfilePlaceholder = async (
-    answers: SurveyAnswer[]
-  ): Promise<ProfileAnalysisOutput> => {
-    // This is a simple heuristic-based placeholder.
-    // It can be replaced with a real AI call when the integration is ready.
-    const categoryCounts: Record<string, number> = {
-      thinker: 0,
-      builder: 0,
-      creator: 0,
-      connector: 0,
-    };
-  
-    answers.forEach(a => {
-      if (a.question.includes('challenge')) {
-        if (a.answer.includes('Analyze')) categoryCounts.thinker++;
-        if (a.answer.includes('building')) categoryCounts.builder++;
-        if (a.answer.includes('Brainstorm')) categoryCounts.creator++;
-        if (a.answer.includes('Ask others')) categoryCounts.connector++;
-      } else if (a.question.includes('project')) {
-        if (a.answer.includes('website')) categoryCounts.builder++;
-        if (a.answer.includes('logo')) categoryCounts.creator++;
-        if (a.answer.includes('Connect them')) categoryCounts.connector++;
-        if (a.answer.includes('strategic plan')) categoryCounts.thinker++;
-      } else if (a.question.includes('Saturday')) {
-        if (a.answer.includes('art')) categoryCounts.creator++;
-        if (a.answer.includes('networking')) categoryCounts.connector++;
-        if (a.answer.includes('book')) categoryCounts.thinker++;
-        if (a.answer.includes('DIY project')) categoryCounts.builder++;
-      } else if (a.question.includes('compliment')) {
-        if (a.answer.includes('bring people together')) categoryCounts.connector++;
-        if (a.answer.includes('practical and solid')) categoryCounts.builder++;
-        if (a.answer.includes('original perspective')) categoryCounts.creator++;
-        if (a.answer.includes('understand things so deeply')) categoryCounts.thinker++;
-      } else if (a.question.includes('tool')) {
-        if (a.answer.includes('database')) categoryCounts.thinker++;
-        if (a.answer.includes('canvas')) categoryCounts.creator++;
-        if (a.answer.includes('hammer')) categoryCounts.builder++;
-        if (a.answer.includes('contact list')) categoryCounts.connector++;
-      }
-    });
-  
-    const determinedCategory = Object.keys(categoryCounts).reduce((a, b) =>
-      categoryCounts[a] > categoryCounts[b] ? a : b
-    ) as 'thinker' | 'builder' | 'creator' | 'connector';
-  
-    return {
-      category: determinedCategory,
-      reasoning:
-        'I have analyzed your responses and this is the only logical conclusion. Now, get to work.',
-    };
-};
+import {ai} from '@/ai/genkit';
+import {openAI} from '@genkit-ai/compat-oai/openai';
+import {defineFlow} from 'genkit';
 
-export async function calculateSkillProfile(
-  answers: SurveyAnswer[]
-): Promise<ProfileAnalysisOutput> {
-  // Using the placeholder function for now.
-  return calculateSkillProfilePlaceholder(answers);
-}
+const PROMPT = `
+You are an AI assistant for a mobile app that helps users build skills.
+Your task is to analyze a user's answers to a survey and determine which of the four categories they fall into: thinker, builder, creator, or connector.
+
+Here are the user's answers:
+{answers}
+
+Based on these answers, determine the user's category and provide a brief, menacing yet encouraging explanation for why the category was chosen, in the style of Duolingo.
+
+Your output should be a JSON object with two keys: "category" and "reasoning".
+`;
+
+export const calculateSkillProfile = defineFlow(
+  {
+    name: 'calculateSkillProfile',
+    inputSchema: ProfileAnalysisInputSchema,
+    outputSchema: ProfileAnalysisOutputSchema,
+  },
+  async (input: ProfileAnalysisInput) => {
+    const response = await ai.generate({
+      prompt: PROMPT,
+      model: openAI.model('z-ai/glm-4.5-air:free'),
+      variables: {
+        answers: JSON.stringify(input.answers),
+      },
+    });
+
+    const result = response.output();
+    if (typeof result !== 'object' || result === null) {
+      throw new Error('Unexpected AI output format');
+    }
+    return result as ProfileAnalysisOutput;
+  }
+);

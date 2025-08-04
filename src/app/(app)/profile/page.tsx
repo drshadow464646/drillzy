@@ -6,8 +6,10 @@ import { useUserData } from '@/context/UserDataProvider';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Skeleton } from '@/components/ui/skeleton';
 import { User, Target, BarChart, PieChart } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import SkillRadarChart from '@/components/SkillRadarChart';
 import SkillCategoryPieChart from '@/components/SkillCategoryPieChart';
+import type { SkillHistoryItem } from '@/lib/types';
 
 
 export default function ProfilePage() {
@@ -70,7 +72,7 @@ export default function ProfilePage() {
                             <CardTitle className="text-lg">Skill Balance</CardTitle>
                         </CardHeader>
                         <CardContent>
-                           <SkillRadarChart data={userData.categoryCounts} />
+                           <SkillRadarChart history={userData.skillHistory} />
                         </CardContent>
                     </Card>
 
@@ -80,7 +82,7 @@ export default function ProfilePage() {
                             <CardTitle className="text-lg">Category Breakdown</CardTitle>
                         </CardHeader>
                         <CardContent className="h-[250px] flex items-center justify-center">
-                           <SkillCategoryPieChart data={userData.categoryCounts} />
+                           <SkillCategoryPieChart history={userData.skillHistory} />
                         </CardContent>
                     </Card>
                 </div>

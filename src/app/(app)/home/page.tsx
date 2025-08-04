@@ -3,11 +3,14 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useUserData } from '@/context/UserDataProvider';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Zap, CornerDownRight, Check, BarChartHorizontal, TrendingUp, Lightbulb, BellRing } from 'lucide-react';
+import { Zap, CornerDownRight, Check, BrainCircuit, BarChartHorizontal, TrendingUp, Lightbulb, BellRing } from 'lucide-react';
 import { getSkillById } from '@/lib/skills';
 import { Skeleton } from '@/components/ui/skeleton';
+import { format, parseISO } from 'date-fns';
+import type { SkillHistoryItem } from '@/lib/types';
 import WeeklyProgressChart from '@/components/WeeklyProgressChart';
 import CumulativeSkillsChart from '@/components/CumulativeSkillsChart';
 import { checkPermissions, requestPermissions, scheduleDailyNotification } from '@/lib/notifications';
@@ -83,6 +86,7 @@ function NotificationPrompt() {
 
 export default function HomePage() {
   const { userData, isLoading, burnSkill, completeSkillForToday, assignSkillForToday } = useUserData();
+  const router = useRouter();
   const hasAssignedSkill = useRef(false);
   const [isClient, setIsClient] = useState(false);
 
@@ -91,21 +95,27 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (userData && !userData.todaySkill && !hasAssignedSkill.current && isClient) {
+    if (userData && !isLoading && !hasAssignedSkill.current && isClient) {
         assignSkillForToday();
         hasAssignedSkill.current = true;
     }
-  }, [userData, assignSkillForToday, isClient]);
+  }, [userData, isLoading, assignSkillForToday, isClient]);
+
+  const todayHistoryItem = useMemo(() => {
+    if (!userData || !isClient) return null;
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    return userData.skillHistory.find(item => item.date === todayStr);
+  }, [userData, isClient]);
 
   const skillText = useMemo(() => {
-      if (!userData?.todaySkill) return '';
-      if (userData.todaySkill.skillId === "NO_SKILLS_LEFT") return "You've unlocked all skills! 🏆";
-      const skill = getSkillById(userData.todaySkill.skillId);
+      if (!todayHistoryItem) return '';
+      if (todayHistoryItem.skill_id === "NO_SKILLS_LEFT") return "You've unlocked all skills! 🏆";
+      const skill = getSkillById(todayHistoryItem.skill_id);
       return skill?.text || '';
-  }, [userData?.todaySkill]);
+  }, [todayHistoryItem]);
 
-  const isCompleted = userData?.todaySkill?.completed ?? false;
-  const isNoSkillsLeft = userData?.todaySkill?.skillId === "NO_SKILLS_LEFT";
+  const isCompleted = todayHistoryItem?.completed ?? false;
+  const isNoSkillsLeft = todayHistoryItem?.skill_id === "NO_SKILLS_LEFT";
 
   if (isLoading || !userData || !isClient) {
     return (
@@ -182,7 +192,7 @@ export default function HomePage() {
                     <CardTitle className="text-lg">Cumulative Growth</CardTitle>
                 </CardHeader>
                 <CardContent className="h-[300px] flex items-center justify-center pt-4">
-                   <CumulativeSkillsChart data={userData.cumulativeGrowth} />
+                   <CumulativeSkillsChart history={userData.skillHistory as SkillHistoryItem[]} />
                 </CardContent>
             </Card>
 
@@ -192,7 +202,7 @@ export default function HomePage() {
                     <CardTitle className="text-lg">Weekly Progress</CardTitle>
                 </CardHeader>
                 <CardContent className="h-[250px] flex items-center justify-center">
-                   <WeeklyProgressChart data={userData.weeklyProgress} />
+                   <WeeklyProgressChart history={userData.skillHistory as SkillHistoryItem[]} />
                 </CardContent>
             </Card>
         </div>

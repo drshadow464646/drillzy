@@ -60,7 +60,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
   const supabase = useMemo(() => createClient(), []);
 
-  const initializeUser = useCallback(async () => {
+  const refreshUserData = useCallback(async () => {
     setIsLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
 
@@ -101,11 +101,11 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
   }, [supabase]);
 
   useEffect(() => {
-    initializeUser();
+    refreshUserData();
     const { data: authListener } = supabase.auth.onAuthStateChange(
         (event, session) => {
-            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED') {
-                initializeUser();
+            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
+                refreshUserData();
             }
             if (event === 'SIGNED_OUT') {
                 setUserData(null);
@@ -116,7 +116,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
      return () => {
         authListener.subscription.unsubscribe();
     };
-  }, [supabase, router, initializeUser]);
+  }, [supabase, router, refreshUserData]);
 
   const assignSkillForToday = useCallback(async () => {
     if (!userData) return;
@@ -128,8 +128,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     const seenIds = userData.skillHistory.map(item => item.skill_id);
     const newSkill = await getNewSkillAction(seenIds, userData.category || undefined);
 
-    const newSkillHistoryItem = {
-        user_id: userData.id,
+    const newSkillHistoryItem: Omit<SkillHistoryItem, 'user_id'> & { user_id?: string } = {
         date: todayStr,
         skill_id: newSkill ? newSkill.id : "NO_SKILLS_LEFT",
         completed: newSkill ? false : true,
@@ -137,7 +136,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
 
     const { data, error } = await supabase
       .from('skill_history')
-      .insert(newSkillHistoryItem)
+      .insert({ ...newSkillHistoryItem, user_id: userData.id })
       .select()
       .single();
 
@@ -156,47 +155,62 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
   const burnSkill = useCallback(async () => {
       if (!userData) return;
       const todayStr = format(new Date(), 'yyyy-MM-dd');
+      
+      // Optimistically find a new skill on the client
       const seenIds = userData.skillHistory.filter(item => item.date !== todayStr).map(item => item.skill_id);
       const newSkill = await getNewSkillAction(seenIds, userData.category || undefined);
       
       const newSkillId = newSkill ? newSkill.id : "NO_SKILLS_LEFT";
       const completed = !newSkill;
+      
+      // Optimistically update the UI
+      setUserData(prev => {
+          if (!prev) return null;
+          const newHistory = prev.skillHistory.map(item => 
+              item.date === todayStr ? { ...item, skill_id: newSkillId, completed: completed } : item
+          );
+          return { ...prev, skillHistory: newHistory };
+      });
 
-      const { data, error } = await supabase
+      const { error } = await supabase
         .from('skill_history')
         .update({ skill_id: newSkillId, completed: completed })
         .eq('user_id', userData.id)
-        .eq('date', todayStr)
-        .select()
-        .single();
+        .eq('date', todayStr);
         
       if (error) {
           console.error("Error burning skill:", error);
-          return;
+          // Revert the optimistic update on error
+          refreshUserData();
       }
-
-      await initializeUser(); // Re-fetch all data to ensure consistency
-  }, [userData, supabase, initializeUser]);
+  }, [userData, supabase, refreshUserData]);
   
   const completeSkillForToday = useCallback(async () => {
     if (!userData) return;
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     
-    const { data, error } = await supabase
+    // Optimistically update the UI
+    setUserData(prev => {
+        if (!prev) return null;
+        const newHistory = prev.skillHistory.map(item => 
+            item.date === todayStr ? { ...item, completed: true } : item
+        );
+        const newStreak = calculateStreak(newHistory);
+        return { ...prev, skillHistory: newHistory, streakCount: newStreak };
+    });
+
+    const { error } = await supabase
         .from('skill_history')
         .update({ completed: true })
         .eq('user_id', userData.id)
-        .eq('date', todayStr)
-        .select()
-        .single();
+        .eq('date', todayStr);
 
     if (error) {
         console.error("Error completing skill:", error);
-        return;
+        // Revert the optimistic update on error
+        refreshUserData();
     }
-    
-    await initializeUser(); // Re-fetch to get updated streak count and history
-  }, [userData, supabase, initializeUser]);
+  }, [userData, supabase, refreshUserData]);
 
   const signOut = async () => {
     await supabase.auth.signOut();
@@ -209,8 +223,8 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     burnSkill,
     completeSkillForToday,
     assignSkillForToday,
-    refreshUserData: initializeUser
-  }), [userData, isLoading, signOut, burnSkill, completeSkillForToday, assignSkillForToday, initializeUser]);
+    refreshUserData
+  }), [userData, isLoading, signOut, burnSkill, completeSkillForToday, assignSkillForToday, refreshUserData]);
 
   return (
     <UserDataContext.Provider value={value}>

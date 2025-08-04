@@ -282,4 +282,3 @@ function CompletedSkillItem({ item }: { item: SkillHistoryItem }) {
         </li>
     );
 }
-

@@ -1,6 +1,5 @@
 
 import type { Category, Skill, SurveyQuestion } from './types';
-import { getSkillByIdAction, getNewSkillAction } from '@/lib/actions';
 
 
 export const surveyQuestions: SurveyQuestion[] = [
@@ -55,12 +54,3 @@ export const surveyQuestions: SurveyQuestion[] = [
     ],
   },
 ];
-
-
-export async function getSkillById(id: string): Promise<Skill | null> {
-    return getSkillByIdAction(id);
-}
-
-export async function getNewSkill(seenIds: string[], userCategory?: Category): Promise<Skill | null> {
-    return getNewSkillAction(seenIds, userCategory);
-}

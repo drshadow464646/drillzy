@@ -8,7 +8,7 @@ import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Award, CalendarCheck, Flame, PieChart as PieChartIcon, Quote, Sparkles, Star, Trophy } from 'lucide-react';
 import { format, isSameDay, parseISO } from 'date-fns';
-import { getSkillById } from '@/lib/skills';
+import { getSkillByIdAction } from '@/app/(app)/actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { DayModifiers } from 'react-day-picker';
 import type { Skill, SkillHistoryItem } from '@/lib/types';
@@ -59,7 +59,7 @@ export default function StreakPage() {
             return;
         }
         
-        const skill = await getSkillById(todayHistoryItem.skill_id);
+        const skill = await getSkillByIdAction(todayHistoryItem.skill_id);
         setCurrentSkillText(skill?.text || "Loading skill...");
     }
     fetchCurrentSkill();
@@ -87,7 +87,7 @@ export default function StreakPage() {
         const dateStr = format(selectedDay, 'yyyy-MM-dd');
         const historyItem = userData.skillHistory.find(item => item.date === dateStr && item.completed);
         if (historyItem && historyItem.skill_id !== 'NO_SKILLS_LEFT') {
-            const skill = await getSkillById(historyItem.skill_id);
+            const skill = await getSkillByIdAction(historyItem.skill_id);
             if (skill) {
                 setSelectedSkillInfo({
                     date: format(selectedDay, 'PPP'),
@@ -270,7 +270,7 @@ function CompletedSkillItem({ item }: { item: SkillHistoryItem }) {
     const [skill, setSkill] = useState<Skill | null>(null);
 
     useEffect(() => {
-        getSkillById(item.skill_id).then(setSkill);
+        getSkillByIdAction(item.skill_id).then(setSkill);
     }, [item.skill_id]);
 
     if (!skill) return <Skeleton className="h-10 w-full mb-2" />;

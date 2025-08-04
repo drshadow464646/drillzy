@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Zap, CornerDownRight, Check, BrainCircuit, BarChartHorizontal, TrendingUp, Lightbulb, BellRing } from 'lucide-react';
-import { getSkillById } from '@/lib/skills';
+import { getSkillByIdAction } from '@/app/(app)/actions';
 import { Skeleton } from '@/components/ui/skeleton';
 import { format, parseISO } from 'date-fns';
 import type { SkillHistoryItem } from '@/lib/types';
@@ -118,7 +118,7 @@ export default function HomePage() {
             setSkillText("You've unlocked all skills! 🏆");
             return;
         };
-        const skill = await getSkillById(todayHistoryItem.skill_id);
+        const skill = await getSkillByIdAction(todayHistoryItem.skill_id);
         setSkillText(skill?.text || '');
     }
     fetchSkillText();

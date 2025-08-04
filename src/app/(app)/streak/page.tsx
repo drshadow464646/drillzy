@@ -11,7 +11,7 @@ import { format, isSameDay, parseISO } from 'date-fns';
 import { getSkillById } from '@/lib/skills';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { DayModifiers } from 'react-day-picker';
-import type { SkillHistoryItem } from '@/lib/types';
+import type { Skill, SkillHistoryItem } from '@/lib/types';
 
 const achievements = [
     { days: 3, label: "3-Day Spark", icon: Flame },
@@ -26,6 +26,9 @@ export default function StreakPage() {
   const [isClient, setIsClient] = useState(false);
   const [fromMonth, setFromMonth] = useState<Date | undefined>();
   const [toMonth, setToMonth] = useState<Date | undefined>();
+  const [currentSkillText, setCurrentSkillText] = useState("Loading skill...");
+  const [selectedSkillInfo, setSelectedSkillInfo] = useState<{date: string, text: string} | null>(null);
+  const [completedSkills, setCompletedSkills] = useState<SkillHistoryItem[]>([]);
   
   useEffect(() => {
     setIsClient(true);
@@ -35,24 +38,38 @@ export default function StreakPage() {
     setFromMonth(twoMonthsAgo);
     setToMonth(now);
   }, []);
-  
-  const currentSkillText = useMemo(() => {
-    if (!isClient || !userData || !userData.skillHistory.length) return "Loading skill...";
-    
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
-    const todayHistoryItem = userData.skillHistory.find(item => item.date === todayStr);
-    
-    if (!todayHistoryItem) {
-        return "Go to the Home screen to get your skill for today!";
-    }
 
-    if (todayHistoryItem.skill_id === "NO_SKILLS_LEFT") {
-        return "You've unlocked all skills! 🏆";
+  useEffect(() => {
+    async function fetchCurrentSkill() {
+        if (!isClient || !userData || !userData.skillHistory.length) {
+            setCurrentSkillText("Loading skill...");
+            return;
+        };
+        
+        const todayStr = format(new Date(), 'yyyy-MM-dd');
+        const todayHistoryItem = userData.skillHistory.find(item => item.date === todayStr);
+        
+        if (!todayHistoryItem) {
+            setCurrentSkillText("Go to the Home screen to get your skill for today!");
+            return;
+        }
+
+        if (todayHistoryItem.skill_id === "NO_SKILLS_LEFT") {
+            setCurrentSkillText("You've unlocked all skills! 🏆");
+            return;
+        }
+        
+        const skill = await getSkillById(todayHistoryItem.skill_id);
+        setCurrentSkillText(skill?.text || "Loading skill...");
     }
-    
-    const skill = getSkillById(todayHistoryItem.skill_id);
-    return skill?.text || "Loading skill...";
+    fetchCurrentSkill();
   }, [userData, isClient]);
+
+  useEffect(() => {
+    if(userData) {
+      setCompletedSkills(userData.skillHistory.filter(s => s.completed && s.skill_id !== 'NO_SKILLS_LEFT'));
+    }
+  }, [userData])
 
   const completedDays = useMemo(() => {
     if (!isClient || !userData) return [];
@@ -61,20 +78,27 @@ export default function StreakPage() {
         .map(item => parseISO(item.date));
   }, [userData, isClient]);
 
-  const selectedSkill = useMemo(() => {
-    if (!selectedDay || !userData) return null;
-    const dateStr = format(selectedDay, 'yyyy-MM-dd');
-    const historyItem = userData.skillHistory.find(item => item.date === dateStr && item.completed);
-    if (historyItem && historyItem.skill_id !== 'NO_SKILLS_LEFT') {
-        const skill = getSkillById(historyItem.skill_id);
-        if (skill) {
-            return {
-                date: format(selectedDay, 'PPP'),
-                text: skill.text
-            };
+  useEffect(() => {
+    async function fetchSelectedSkill() {
+        if (!selectedDay || !userData) {
+            setSelectedSkillInfo(null);
+            return;
+        };
+        const dateStr = format(selectedDay, 'yyyy-MM-dd');
+        const historyItem = userData.skillHistory.find(item => item.date === dateStr && item.completed);
+        if (historyItem && historyItem.skill_id !== 'NO_SKILLS_LEFT') {
+            const skill = await getSkillById(historyItem.skill_id);
+            if (skill) {
+                setSelectedSkillInfo({
+                    date: format(selectedDay, 'PPP'),
+                    text: skill.text
+                });
+            }
+        } else {
+            setSelectedSkillInfo(null);
         }
     }
-    return null;
+    fetchSelectedSkill();
   }, [selectedDay, userData]);
 
 
@@ -172,16 +196,16 @@ export default function StreakPage() {
                     </div>
                 </Card>
                 
-                {selectedSkill && (
+                {selectedSkillInfo && (
                   <Card className="shadow-lg rounded-xl animate-in fade-in duration-300">
                       <CardHeader className="flex-row items-center gap-4">
                           <Sparkles className="h-6 w-6 text-primary flex-shrink-0" />
                           <div className="flex-grow">
-                              <CardTitle className="text-lg">Skill for {selectedSkill.date}</CardTitle>
+                              <CardTitle className="text-lg">Skill for {selectedSkillInfo.date}</CardTitle>
                           </div>
                       </CardHeader>
                       <CardContent>
-                          <p className="text-lg font-medium">{selectedSkill.text}</p>
+                          <p className="text-lg font-medium">{selectedSkillInfo.text}</p>
                       </CardContent>
                   </Card>
                 )}
@@ -222,21 +246,13 @@ export default function StreakPage() {
                         <CardTitle className="text-lg">Completed Skill History</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {userData.skillHistory.filter(s => s.completed && s.skill_id !== 'NO_SKILLS_LEFT').length > 0 ? (
+                        {completedSkills.length > 0 ? (
                              <ul className="space-y-4 max-h-[24rem] overflow-y-auto pr-2">
-                                {userData.skillHistory
-                                    .filter(s => s.completed && s.skill_id !== 'NO_SKILLS_LEFT')
+                                {completedSkills
                                     .slice(0, 10)
-                                    .map((item) => {
-                                        const skill = getSkillById(item.skill_id);
-                                        if (!skill) return null;
-                                        return (
-                                            <li key={`${item.date}-${skill.id}`} className="flex flex-col border-b pb-2 last:border-none">
-                                                <span className="text-sm font-semibold text-foreground">{skill.text}</span>
-                                                <span className="text-xs text-muted-foreground">{format(parseISO(item.date), 'PPP')}</span>
-                                            </li>
-                                        );
-                                    })}
+                                    .map((item) => (
+                                        <CompletedSkillItem key={`${item.date}-${item.skill_id}`} item={item} />
+                                    ))}
                             </ul>
                         ) : (
                             <p className="text-muted-foreground">No skills completed yet.</p>
@@ -249,3 +265,21 @@ export default function StreakPage() {
     </div>
   );
 }
+
+function CompletedSkillItem({ item }: { item: SkillHistoryItem }) {
+    const [skill, setSkill] = useState<Skill | null>(null);
+
+    useEffect(() => {
+        getSkillById(item.skill_id).then(setSkill);
+    }, [item.skill_id]);
+
+    if (!skill) return <Skeleton className="h-10 w-full mb-2" />;
+
+    return (
+        <li className="flex flex-col border-b pb-2 last:border-none">
+            <span className="text-sm font-semibold text-foreground">{skill.text}</span>
+            <span className="text-xs text-muted-foreground">{format(parseISO(item.date), 'PPP')}</span>
+        </li>
+    );
+}
+

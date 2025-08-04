@@ -89,6 +89,7 @@ export default function HomePage() {
   const router = useRouter();
   const hasAssignedSkill = useRef(false);
   const [isClient, setIsClient] = useState(false);
+  const [skillText, setSkillText] = useState('');
 
   useEffect(() => {
     setIsClient(true);
@@ -106,13 +107,23 @@ export default function HomePage() {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     return userData.skillHistory.find(item => item.date === todayStr);
   }, [userData, isClient]);
-
-  const skillText = useMemo(() => {
-      if (!todayHistoryItem) return '';
-      if (todayHistoryItem.skill_id === "NO_SKILLS_LEFT") return "You've unlocked all skills! 🏆";
-      const skill = getSkillById(todayHistoryItem.skill_id);
-      return skill?.text || '';
+  
+  useEffect(() => {
+    async function fetchSkillText() {
+        if (!todayHistoryItem) {
+            setSkillText('');
+            return;
+        };
+        if (todayHistoryItem.skill_id === "NO_SKILLS_LEFT") {
+            setSkillText("You've unlocked all skills! 🏆");
+            return;
+        };
+        const skill = await getSkillById(todayHistoryItem.skill_id);
+        setSkillText(skill?.text || '');
+    }
+    fetchSkillText();
   }, [todayHistoryItem]);
+
 
   const isCompleted = todayHistoryItem?.completed ?? false;
   const isNoSkillsLeft = todayHistoryItem?.skill_id === "NO_SKILLS_LEFT";

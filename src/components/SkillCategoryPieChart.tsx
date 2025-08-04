@@ -4,7 +4,8 @@
 import * as React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { getSkillById } from '@/lib/skills';
-import type { SkillHistoryItem } from '@/lib/types';
+import type { Skill, SkillHistoryItem } from '@/lib/types';
+import { Skeleton } from './ui/skeleton';
 
 interface SkillCategoryPieChartProps {
     history: SkillHistoryItem[];
@@ -27,33 +28,48 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
 
 
 const SkillCategoryPieChart: React.FC<SkillCategoryPieChartProps> = ({ history }) => {
-    const categoryData = React.useMemo(() => {
-        const counts = {
-            thinker: 0,
-            builder: 0,
-            creator: 0,
-            connector: 0,
-        };
+    const [categoryData, setCategoryData] = React.useState<any[]>([]);
+    const [isLoading, setIsLoading] = React.useState(true);
 
-        const completedSkills = history
-          .filter(item => item.completed && item.skill_id !== 'NO_SKILLS_LEFT')
-          .map(item => getSkillById(item.skill_id))
-          .filter(Boolean);
+    React.useEffect(() => {
+        async function processHistory() {
+            const counts = {
+                thinker: 0,
+                builder: 0,
+                creator: 0,
+                connector: 0,
+            };
 
-        // This is a placeholder for now until we have categories for skills.
-        completedSkills.forEach((skill, index) => {
-            const category = ['thinker', 'builder', 'creator', 'connector'][index % 4];
-            counts[category as keyof typeof counts]++;
-        });
-        
-        return [
-                { name: 'Thinker', value: counts.thinker },
-                { name: 'Creator', value: counts.creator },
-                { name: 'Builder', value: counts.builder },
-                { name: 'Connector', value: counts.connector },
-            ].filter(d => d.value > 0);
+            const completedSkillItems = history
+              .filter(item => item.completed && item.skill_id !== 'NO_SKILLS_LEFT');
+
+            const skillPromises = completedSkillItems.map(item => getSkillById(item.skill_id));
+            const completedSkills = (await Promise.all(skillPromises)).filter(Boolean) as Skill[];
+
+            completedSkills.forEach(skill => {
+                if (skill && counts.hasOwnProperty(skill.category)) {
+                    counts[skill.category as keyof typeof counts]++;
+                }
+            });
+            
+            const data = [
+                    { name: 'Thinker', value: counts.thinker },
+                    { name: 'Creator', value: counts.creator },
+                    { name: 'Builder', value: counts.builder },
+                    { name: 'Connector', value: counts.connector },
+                ].filter(d => d.value > 0);
+            
+            setCategoryData(data);
+            setIsLoading(false);
+        }
+
+        processHistory();
     }, [history]);
     
+    if (isLoading) {
+        return <Skeleton className="w-full h-full" />;
+    }
+
     const total = categoryData.reduce((sum, item) => sum + item.value, 0);
 
     if (total === 0) {

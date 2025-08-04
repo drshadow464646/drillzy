@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, ReactNode, useCallback, use
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { UserData, SkillHistoryItem } from '@/lib/types';
-import { format, subDays, parseISO, isToday } from 'date-fns';
+import { format, subDays, parseISO } from 'date-fns';
 import { ALL_SKILLS } from '@/lib/skills-data';
 
 interface UserDataContextType {

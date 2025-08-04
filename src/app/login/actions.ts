@@ -34,22 +34,25 @@ export async function signup(formData: FormData) {
   
   const emailRedirectTo = `${origin}/auth/callback`;
 
-  const {error} = await supabase.auth.signUp({
+  const { error } = await supabase.auth.signUp({
     email,
     password,
     options: {
       emailRedirectTo,
-      data: {name},
+      data: { name },
     },
   });
 
-  if (error) {
-    if (error.message.includes('User already registered')) {
-      return redirect('/login?message=User already registered. Please log in.');
-    }
+  // If there's an error, but it's the "User already registered" error,
+  // we still want to proceed as if it was a success. This allows users
+  // who might have closed the browser to try signing up again and get the
+  // verification email resent.
+  if (error && !error.message.includes('User already registered')) {
+    console.error('Signup Error:', error);
     return redirect('/login?message=Could not create user. Please try again.');
   }
 
+  // Redirect to a page that tells the user to check their email.
   revalidatePath('/', 'layout');
   return redirect(
     '/login?message=Check your email to complete the signup process'

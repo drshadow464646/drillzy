@@ -77,9 +77,12 @@ export default function LoginPage() {
                                 </div>
                                 <div className="space-y-2">
                                     <Label htmlFor="password-signup">Password</Label>
-                                    <Input id="password-signup" name="password" type="password" required />
+                                    <Input id="password-signup" name="password" type="password" required minLength={6} />
                                 </div>
                                 <Button type="submit" className="w-full">Create Account</Button>
+                                <p className="text-xs text-center text-muted-foreground pt-2">
+                                    After signing up, you'll need to click the verification link sent to your email address to log in.
+                                </p>
                             </form>
                         </CardContent>
                     </Card>

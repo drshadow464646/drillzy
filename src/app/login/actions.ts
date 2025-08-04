@@ -43,11 +43,15 @@ export async function signup(formData: FormData) {
     },
   });
 
-  // If there's an error, but it's the "User already registered" error,
-  // we still want to proceed as if it was a success. This allows users
-  // who might have closed the browser to try signing up again and get the
-  // verification email resent.
-  if (error && !error.message.includes('User already registered')) {
+  // If there's an error, check if it's because the user already exists.
+  // If so, we can still treat it as a success and let them know to check their email.
+  if (error) {
+    if (error.message.includes('User already registered')) {
+        // This is a "success" case for our flow, redirect to email confirmation message
+        return redirect(
+            '/login?message=Check your email to complete the signup process'
+        );
+    }
     console.error('Signup Error:', error);
     return redirect('/login?message=Could not create user. Please try again.');
   }

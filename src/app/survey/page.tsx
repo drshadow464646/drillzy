@@ -1,14 +1,14 @@
 
 "use client";
 
-import { useState, Suspense } from 'react';
+import { useState, Suspense, useEffect, useTransition } from 'react';
 import { surveyQuestions } from '@/lib/skills';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
-import { Loader2 } from 'lucide-react';
+import { Loader2, Sparkles } from 'lucide-react';
 import type { SurveyAnswer } from '@/lib/types';
-import { submitSurvey } from './actions';
-import { useSearchParams } from 'next/navigation';
+import { getProfileAnalysis } from './actions';
+import { useSearchParams, useRouter } from 'next/navigation';
 
 function SurveyErrorMessage() {
     const searchParams = useSearchParams();
@@ -23,6 +23,9 @@ function SurveyPageContent() {
   const [currentQuestionIndex, setCurrentQuestionIndex] = useState(0);
   const [answers, setAnswers] = useState<SurveyAnswer[]>([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [analysis, setAnalysis] = useState({ reasoning: '', category: '', done: false });
+  const [isPending, startTransition] = useTransition();
+  const router = useRouter();
 
   const handleAnswer = async (answerText: string) => {
     const newAnswers: SurveyAnswer[] = [
@@ -38,16 +41,56 @@ function SurveyPageContent() {
       setCurrentQuestionIndex(currentQuestionIndex + 1);
     } else {
       setIsSubmitting(true);
-      await submitSurvey(newAnswers);
+      startTransition(async () => {
+          const stream = getProfileAnalysis(newAnswers);
+          let accumulatedReasoning = "";
+          for await (const result of stream) {
+              if (result.error) {
+                  console.error(result.error);
+                  // Handle error state appropriately
+                  break;
+              }
+              if (result.reasoning) {
+                accumulatedReasoning += result.reasoning;
+                setAnalysis(prev => ({ ...prev, reasoning: result.reasoning }));
+              }
+              if(result.done) {
+                  setAnalysis(prev => ({ ...prev, category: result.category, done: true }));
+              }
+          }
+      });
     }
   };
+
+  useEffect(() => {
+    if (analysis.done) {
+        setTimeout(() => {
+            router.push('/home');
+        }, 4000); // Wait 4 seconds to let the user read the message
+    }
+  }, [analysis.done, router]);
 
   if (isSubmitting) {
     return (
       <div className="flex flex-col h-screen p-4 items-center justify-center text-center">
-        <Loader2 className="h-12 w-12 animate-spin text-primary mb-6" />
-        <h1 className="text-2xl md:text-3xl font-bold text-foreground">Finalizing your profile...</h1>
-        <p className="text-muted-foreground mt-2">This will just take a moment.</p>
+        <div className="w-full max-w-md animate-in fade-in-50 duration-500">
+            <Sparkles className="h-12 w-12 text-primary mx-auto mb-6" />
+            <h1 className="text-2xl md:text-3xl font-bold text-foreground">Analyzing your profile...</h1>
+            {analysis.reasoning ? (
+                 <div className="mt-6 text-left p-4 bg-muted/50 rounded-lg border">
+                    <p className="text-muted-foreground whitespace-pre-wrap">{analysis.reasoning}</p>
+                 </div>
+            ): (
+                <div className="mt-6">
+                    <Loader2 className="h-8 w-8 animate-spin text-primary mx-auto" />
+                </div>
+            )}
+            {analysis.done && (
+                 <div className="mt-6 animate-in fade-in duration-500">
+                    <p className="text-lg">You are a <strong className="text-accent">{analysis.category}!</strong> Redirecting you now...</p>
+                 </div>
+            )}
+        </div>
       </div>
     );
   }

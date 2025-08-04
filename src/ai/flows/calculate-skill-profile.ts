@@ -10,7 +10,6 @@
 
 import {ai} from '@/ai/genkit';
 import type {SurveyAnswer} from '@/lib/types';
-import {defineFlow, definePrompt} from 'genkit';
 import {z} from 'zod';
 
 const ProfileAnalysisInputSchema = z.object({
@@ -31,7 +30,7 @@ const ProfileAnalysisOutputSchema = z.object({
     ),
   reasoning: z
     .string()
-    .describe('A brief, menacing yet encouraging explanation for why the category was chosen, in the style of Duolingo.'),
+    .describe('A brief, menacing yet encouraging explanation for why the category was chosen, in the style of the Duolingo owl.'),
 });
 export type ProfileAnalysisOutput = z.infer<
   typeof ProfileAnalysisOutputSchema
@@ -58,20 +57,28 @@ Survey Answers:
 `,
 });
 
-const calculateSkillProfileFlow = ai.defineFlow(
-  {
-    name: 'calculateSkillProfileFlow',
-    inputSchema: ProfileAnalysisInputSchema,
-    outputSchema: ProfileAnalysisOutputSchema,
-  },
-  async ({answers}) => {
-    const {output} = await skillProfilePrompt({answers});
-    return output!;
-  }
-);
-
 export async function calculateSkillProfile(
-  answers: SurveyAnswer[]
+  answers: SurveyAnswer[],
+  // An optional callback function to stream the reasoning as it's generated.
+  onReasoningChunk?: (chunk: string) => void
 ): Promise<ProfileAnalysisOutput> {
-  return calculateSkillProfileFlow({answers});
+  const {stream, response} = ai.generateStream({
+    prompt: skillProfilePrompt,
+    input: {answers},
+    streaming: true,
+  });
+
+  // Stream the reasoning chunks to the callback.
+  if (onReasoningChunk) {
+    for await (const chunk of stream) {
+      const reasoning = chunk.output?.reasoning;
+      if (reasoning) {
+        onReasoningChunk(reasoning);
+      }
+    }
+  }
+
+  // Wait for the full response to be generated and return it.
+  const result = await response;
+  return result.output!;
 }

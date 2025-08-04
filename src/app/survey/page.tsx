@@ -43,9 +43,12 @@ function SurveyPageContent() {
       startTransition(async () => {
         const result = await submitSurvey(newAnswers);
         if (result?.error) {
-            // You can show an error toast here if you want
             console.error(result.error);
-            // For now, we'll just redirect to home even if it fails
+             // Even if it fails, we push the user out of the survey flow.
+             // Middleware will redirect them back if their profile isn't updated.
+            router.push('/home');
+        } else {
+            // On success, redirect to home.
             router.push('/home');
         }
       });

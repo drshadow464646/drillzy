@@ -2,7 +2,6 @@
 'use server';
 
 import {revalidatePath} from 'next/cache';
-import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import type {Category, SurveyAnswer} from '@/lib/types';
 import { surveyQuestions } from '@/lib/skills';
@@ -15,7 +14,8 @@ export async function submitSurvey(answers: SurveyAnswer[]): Promise<{ error?: s
   } = await supabase.auth.getUser();
 
   if (!user) {
-    return redirect('/login?message=You must be logged in to take the survey.');
+    // This should ideally not be hit if middleware is correct, but as a safeguard:
+    return { error: 'You must be logged in to take the survey.' };
   }
 
   try {
@@ -49,10 +49,11 @@ export async function submitSurvey(answers: SurveyAnswer[]): Promise<{ error?: s
     console.error('Error submitting survey:', error);
     const errorMessage =
       error instanceof Error ? error.message : 'An unknown error occurred.';
-    // This redirect won't work from a client component action, returning error instead
     return { error: `Failed to save profile: ${errorMessage}` };
   }
 
   revalidatePath('/', 'layout');
-  redirect('/home');
+  // We will no longer redirect from the server action.
+  // The client will handle redirection.
+  return {};
 }

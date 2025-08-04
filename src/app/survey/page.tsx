@@ -89,5 +89,9 @@ function SurveyPageContent() {
 }
 
 export default function SurveyPage() {
-    return <SurveyPageContent />;
+    return (
+      <Suspense fallback={<div>Loading...</div>}>
+        <SurveyPageContent />
+      </Suspense>
+    );
 }

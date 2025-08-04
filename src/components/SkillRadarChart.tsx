@@ -4,47 +4,60 @@
 import * as React from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import { getSkillById } from '@/lib/skills';
-import type { SkillHistoryItem } from '@/lib/types';
-import { allSkills } from '@/lib/skills';
+import type { Skill, SkillHistoryItem } from '@/lib/types';
+import { Skeleton } from './ui/skeleton';
 
 interface SkillRadarChartProps {
     history: SkillHistoryItem[];
 }
 
 const SkillRadarChart: React.FC<SkillRadarChartProps> = ({ history }) => {
-    const categoryData = React.useMemo(() => {
-        const counts = {
-            thinker: 0,
-            builder: 0,
-            creator: 0,
-            connector: 0,
-        };
+    const [chartData, setChartData] = React.useState<any>(null);
+     const [isLoading, setIsLoading] = React.useState(true);
 
-        const completedSkills = history
-          .filter(item => item.completed && item.skill_id !== 'NO_SKILLS_LEFT')
-          .map(item => getSkillById(item.skill_id))
-          .filter(Boolean);
-        
-        // This is a placeholder for now until we have categories for skills.
-        completedSkills.forEach((skill, index) => {
-            const category = ['thinker', 'builder', 'creator', 'connector'][index % 4];
-            counts[category as keyof typeof counts]++;
-        });
-        
-        const maxCount = Math.max(...Object.values(counts), 3);
+    React.useEffect(() => {
+        const processHistory = async () => {
+            const counts = {
+                thinker: 0,
+                builder: 0,
+                creator: 0,
+                connector: 0,
+            };
 
-        return {
-            data: [
-                { subject: 'Thinker', count: counts.thinker, fullMark: maxCount },
-                { subject: 'Creator', count: counts.creator, fullMark: maxCount },
-                { subject: 'Builder', count: counts.builder, fullMark: maxCount },
-                { subject: 'Connector', count: counts.connector, fullMark: maxCount },
-            ],
-            total: Object.values(counts).reduce((sum, count) => sum + count, 0)
+            const completedSkillItems = history
+                .filter(item => item.completed && item.skill_id !== 'NO_SKILLS_LEFT');
+            
+            const skillPromises = completedSkillItems.map(item => getSkillById(item.skill_id));
+            const completedSkills = (await Promise.all(skillPromises)).filter(Boolean) as Skill[];
+
+            completedSkills.forEach(skill => {
+                 if (skill && counts.hasOwnProperty(skill.category)) {
+                    counts[skill.category as keyof typeof counts]++;
+                }
+            });
+            
+            const maxCount = Math.max(...Object.values(counts), 3);
+
+            setChartData({
+                data: [
+                    { subject: 'Thinker', count: counts.thinker, fullMark: maxCount },
+                    { subject: 'Creator', count: counts.creator, fullMark: maxCount },
+                    { subject: 'Builder', count: counts.builder, fullMark: maxCount },
+                    { subject: 'Connector', count: counts.connector, fullMark: maxCount },
+                ],
+                total: Object.values(counts).reduce((sum, count) => sum + count, 0)
+            });
+            setIsLoading(false);
         }
+        processHistory();
     }, [history]);
+    
+    if (isLoading || !chartData) {
+        return <Skeleton className="w-full h-64" />;
+    }
 
-    if (categoryData.total === 0) {
+
+    if (chartData.total === 0) {
         return (
             <div className="flex flex-col items-center justify-center h-64 text-center">
                 <p className="text-muted-foreground font-semibold">No skills completed yet!</p>
@@ -55,7 +68,7 @@ const SkillRadarChart: React.FC<SkillRadarChartProps> = ({ history }) => {
 
     return (
         <ResponsiveContainer width="100%" height={250}>
-            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={categoryData.data}>
+            <RadarChart cx="50%" cy="50%" outerRadius="80%" data={chartData.data}>
                 <defs>
                     <radialGradient id="radar-fill">
                         <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.4}/>

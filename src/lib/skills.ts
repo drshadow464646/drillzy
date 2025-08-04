@@ -1,5 +1,7 @@
 
 import type { Category, Skill, SurveyQuestion } from './types';
+import { getSkillByIdAction, getNewSkillAction } from '@/app/(app)/actions';
+
 
 export const surveyQuestions: SurveyQuestion[] = [
   {
@@ -54,56 +56,11 @@ export const surveyQuestions: SurveyQuestion[] = [
   },
 ];
 
-export const allSkills: Skill[] = [
-  // Thinker
-  { id: 'skill_010', text: 'Practice explaining a complex idea simply.', category: 'thinker' },
-  { id: 'skill_011', text: 'Read an article about a topic you know nothing about.', category: 'thinker' },
-  { id: 'skill_012', text: 'Spend 5 minutes questioning one of your own assumptions.', category: 'thinker' },
-  { id: 'skill_013', text: 'Watch a documentary on a historical event.', category: 'thinker' },
-  { id: 'skill_014', text: 'Learn one new word and its definition.', category: 'thinker' },
-  { id: 'skill_015', text: 'Identify the logical fallacies in a news editorial.', category: 'thinker' },
-  { id: 'skill_001', text: 'Write a one-minute journal entry about your day.', category: 'thinker' },
-  { id: 'skill_003', text: 'Break down a large task into 3 smaller steps.', category: 'thinker' },
 
-  // Builder
-  { id: 'skill_002', text: 'Organize one drawer or shelf.', category: 'builder' },
-  { id: 'skill_004', text: 'Fix one small thing in your home that is broken.', category: 'builder' },
-  { id: 'skill_005', text: 'Follow a new recipe to cook a meal.', category: 'builder' },
-
-  // Creator
-  { id: 'skill_006', text: 'Take a photo of something ordinary and make it look interesting.', category: 'creator' },
-  { id: 'skill_007', text: 'Write a six-word story.', category: 'creator' },
-  { id: 'skill_008', text: 'Doodle for 5 minutes without a specific goal.', category: 'creator' },
-  { id: 'skill_009', text: 'Come up with a new use for a common object like a paperclip.', category: 'creator' },
-
-  // Connector
-  { id: 'skill_016', text: 'Send a thoughtful message to a friend you haven\'t spoken to in a while.', category: 'connector' },
-  { id: 'skill_017', text: 'Introduce two people you think should know each other.', category: 'connector' },
-  { id: 'skill_018', text: 'Practice active listening in your next conversation.', category: 'connector' },
-  { id: 'skill_019', text: 'Write a positive comment on a social media post.', category: 'connector' },
-  { id: 'skill_020', text: 'Ask someone a question about their passion.', category: 'connector' },
-];
-
-export function getSkillById(id: string): Skill | undefined {
-  return allSkills.find(skill => skill.id === id);
+export async function getSkillById(id: string): Promise<Skill | null> {
+    return getSkillByIdAction(id);
 }
 
-export function getNewSkill(seenIds: string[], userCategory?: Category): Skill | null {
-  let availableSkills = allSkills.filter(
-    (skill) => !seenIds.includes(skill.id)
-  );
-
-  if (userCategory) {
-    const categorySkills = availableSkills.filter(skill => skill.category === userCategory);
-    if (categorySkills.length > 0) {
-      availableSkills = categorySkills;
-    }
-  }
-
-  if (availableSkills.length === 0) {
-    return null; // All skills have been seen
-  }
-
-  const randomIndex = Math.floor(Math.random() * availableSkills.length);
-  return availableSkills[randomIndex];
+export async function getNewSkill(seenIds: string[], userCategory?: Category): Promise<Skill | null> {
+    return getNewSkillAction(seenIds, userCategory);
 }

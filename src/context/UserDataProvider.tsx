@@ -33,17 +33,14 @@ const calculateStreak = (history: SkillHistoryItem[]): number => {
     const todayStr = format(currentDate, 'yyyy-MM-dd');
     const yesterdayStr = format(subDays(currentDate, 1), 'yyyy-MM-dd');
 
-    // If the user hasn't completed a skill today or yesterday, their streak is broken.
     if (!completedDates.has(todayStr) && !completedDates.has(yesterdayStr)) {
         return 0;
     }
     
-    // If the streak wasn't broken, but today isn't completed, start counting from yesterday.
     if (!completedDates.has(todayStr)) {
         currentDate = subDays(currentDate, 1);
     }
     
-    // Count backwards from the current date until a day is missed.
     while (true) {
         const dateStr = format(currentDate, 'yyyy-MM-dd');
         if (completedDates.has(dateStr)) {
@@ -129,7 +126,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     if (hasSkillForToday) return;
 
     const seenIds = userData.skillHistory.map(item => item.skill_id);
-    const newSkill = getNewSkill(seenIds, userData.category || undefined);
+    const newSkill = await getNewSkill(seenIds, userData.category || undefined);
 
     const newSkillHistoryItem = {
         user_id: userData.id,
@@ -160,7 +157,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
       if (!userData) return;
       const todayStr = format(new Date(), 'yyyy-MM-dd');
       const seenIds = userData.skillHistory.filter(item => item.date !== todayStr).map(item => item.skill_id);
-      const newSkill = getNewSkill(seenIds, userData.category || undefined);
+      const newSkill = await getNewSkill(seenIds, userData.category || undefined);
       
       const newSkillId = newSkill ? newSkill.id : "NO_SKILLS_LEFT";
       const completed = !newSkill;

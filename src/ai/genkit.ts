@@ -4,46 +4,14 @@
 'use server';
 
 import {genkit} from 'genkit';
-import {defineModel} from 'genkit-plugin-openrouter';
+import {openAI} from '@genkit-ai/compat-oai/openai';
 
 export const ai = genkit({
   plugins: [
-    defineModel(
-        {
-          name: 'z-ai/glm-4.5-air:free',
-          label: 'Z-AI - GLM 4.5 Air',
-          family: 'GLM',
-          description: 'A Z-AI powerhouse',
-          capabilities: {
-            media: false,
-            web: false,
-            tools: false,
-            output: ['text'],
-            multiturn: true,
-          },
-        },
-        {
-          apiKey: process.env.OPENROUTER_API_KEY,
-        }
-    ),
-    defineModel(
-        {
-            name: 'moonshotai/kimi-k2:free',
-            label: 'Moonshot AI - Kimi K2',
-            family: 'Kimi',
-            description: 'A Moonshot AI powerhouse',
-            capabilities: {
-                media: false,
-                web: false,
-                tools: false,
-                output: ['text'],
-                multiturn: true,
-            },
-        },
-        {
-            apiKey: process.env.OPENROUTER_API_KEY,
-        }
-    ),
+    openAI({
+      apiKey: process.env.OPENROUTER_API_KEY,
+      baseURL: 'https://openrouter.ai/api/v1',
+    }),
   ],
   // Log to the console in a development environment.
   logSinks: [console.log],

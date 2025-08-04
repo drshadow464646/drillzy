@@ -35,6 +35,7 @@ export type ProfileAnalysisOutput = z.infer<
 >;
 
 import {ai} from '@/ai/genkit';
+import {openAI} from '@genkit-ai/compat-oai/openai';
 import {defineFlow} from 'genkit';
 
 const PROMPT = `
@@ -58,7 +59,7 @@ export const calculateSkillProfile = defineFlow(
   async (input: ProfileAnalysisInput) => {
     const response = await ai.generate({
       prompt: PROMPT,
-      model: 'z-ai/glm-4.5-air:free',
+      model: openAI.model('z-ai/glm-4.5-air:free'),
       variables: {
         answers: JSON.stringify(input.answers),
       },

@@ -4,6 +4,7 @@
 'use server';
 
 import {ai} from '@/ai/genkit';
+import {openAI} from '@genkit-ai/compat-oai/openai';
 import {z} from 'zod';
 import {defineFlow} from 'genkit';
 
@@ -45,7 +46,7 @@ export const generateSkill = defineFlow(
   async (input: GenerateSkillInput) => {
     const response = await ai.generate({
       prompt: PROMPT,
-      model: 'z-ai/glm-4.5-air:free',
+      model: openAI.model('z-ai/glm-4.5-air:free'),
       variables: {
         category: input.category,
         history: input.history?.join(', ') || 'None',

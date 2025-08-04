@@ -172,7 +172,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
   
   const completeSkillForToday = useCallback(async () => {
     if (!userData) return;
-    const todayStr = format(new date(), 'yyyy-MM-dd');
+    const todayStr = format(new Date(), 'yyyy-MM-dd');
     
     // Optimistically update the UI
     setUserData(prev => {

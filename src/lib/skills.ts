@@ -1,6 +1,4 @@
-
-import type { Category, Skill, SurveyQuestion } from './types';
-
+import type { SurveyQuestion } from './types';
 
 export const surveyQuestions: SurveyQuestion[] = [
   {

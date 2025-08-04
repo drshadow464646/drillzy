@@ -1,61 +1,36 @@
 'use server';
 
-import {createClient} from '@/lib/supabase/server';
-import type {Category, Skill} from '@/lib/types';
+import type { Category, Skill } from '@/lib/types';
+import { allSkills } from '@/lib/skillsData';
 
 export async function getSkillByIdAction(id: string): Promise<Skill | null> {
-  const supabase = createClient();
-  const {data, error} = await supabase
-    .from('skills')
-    .select('*')
-    .eq('id', id)
-    .single();
-
-  if (error) {
-    console.error(`Error fetching skill by id ${id}:`, error);
-    return null;
-  }
-  return data;
+  const skill = allSkills.find(s => s.id === id);
+  return skill || null;
 }
 
 export async function getNewSkillAction(
   seenIds: string[],
   userCategory?: Category
 ): Promise<Skill | null> {
-  const supabase = createClient();
+  // Filter out skills that have already been seen
+  const unseenSkills = allSkills.filter(skill => !seenIds.includes(skill.id));
 
-  let query = supabase.from('skills').select('*');
+  let availableSkills = unseenSkills;
 
-  if (seenIds.length > 0) {
-    query = query.not('id', 'in', `(${seenIds.join(',')})`);
-  }
-
+  // If a user category is provided, try to find a skill in that category first
   if (userCategory) {
-    query = query.eq('category', userCategory);
+    const categorizedSkills = unseenSkills.filter(skill => skill.category === userCategory);
+    if (categorizedSkills.length > 0) {
+      availableSkills = categorizedSkills;
+    }
   }
 
-  const {data: availableSkills, error} = await query;
-
-  if (error) {
-    console.error('Error fetching new skill:', error);
+  // If there are no available skills (either in the category or at all), return null
+  if (availableSkills.length === 0) {
     return null;
   }
 
-  if (availableSkills.length === 0) {
-    // If no skills are available in the user's category, try any skill they haven't seen.
-    const {data: anyAvailableSkills, error: anyError} = await supabase
-      .from('skills')
-      .select('*')
-      .not('id', 'in', `(${seenIds.join(',')})`);
-
-    if (anyError || !anyAvailableSkills || anyAvailableSkills.length === 0) {
-      return null;
-    }
-
-    const randomIndex = Math.floor(Math.random() * anyAvailableSkills.length);
-    return anyAvailableSkills[randomIndex];
-  }
-
+  // Return a random skill from the available list
   const randomIndex = Math.floor(Math.random() * availableSkills.length);
   return availableSkills[randomIndex];
 }

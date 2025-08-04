@@ -1,10 +1,7 @@
--- This script sets up your Supabase database for the SkillTrack app.
--- It enforces email verification for users to access app features.
+-- This script sets up the Supabase database for the SkillTrack app,
+-- migrating from localStorage to a persistent database backend.
 
--- Ensure you have enabled email verification in your Supabase project's auth settings.
-
--- 1. Create category enum type (must be created before it's referenced)
--- Drop the type if it already exists to avoid errors on re-running the script
+-- 1. Create category enum type
 drop type if exists public.category cascade;
 create type public.category as enum ('builder', 'creator', 'thinker', 'connector');
 
@@ -14,8 +11,10 @@ create table public.profiles (
   id uuid not null references auth.users on delete cascade,
   name text,
   category public.category,
+  streak_count integer not null default 0,
   primary key (id)
 );
+comment on table public.profiles is 'Profile data for each user, including their current streak.';
 
 -- 3. Set up Row Level Security (RLS) for profiles
 alter table public.profiles enable row level security;
@@ -28,13 +27,9 @@ create policy "Users can insert their own profile."
   on public.profiles for insert
   with check (auth.uid() = id);
 
-create policy "Verified users can update their own profile."
+create policy "Users can update their own profile."
   on public.profiles for update
-  using (
-    auth.uid() = id and
-    (select email_confirmed_at from auth.users where id = auth.uid()) is not null
-  )
-  with check (auth.uid() = id);
+  using (auth.uid() = id);
 
 -- 4. Create skill_history table
 -- This table tracks daily skills and completion status for each user.
@@ -47,16 +42,14 @@ create table public.skill_history (
   primary key (id),
   unique(user_id, date)
 );
+comment on table public.skill_history is 'Tracks the daily skills assigned to users.';
 
 -- 5. Set up RLS for skill_history
 alter table public.skill_history enable row level security;
 
-create policy "Verified users can manage their own skill history."
+create policy "Users can manage their own skill history."
   on public.skill_history for all
-  using (
-    auth.uid() = user_id and
-    (select email_confirmed_at from auth.users where id = auth.uid()) is not null
-  )
+  using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
 
 -- 6. Create survey_answers table
@@ -69,18 +62,15 @@ create table public.survey_answers (
   created_at timestamp with time zone default timezone('utc'::text, now()) not null,
   primary key (id)
 );
+comment on table public.survey_answers is 'Stores user responses to the onboarding survey.';
 
 -- 7. Set up RLS for survey_answers
 alter table public.survey_answers enable row level security;
 
-create policy "Verified users can manage their own survey answers."
+create policy "Users can manage their own survey answers."
   on public.survey_answers for all
-  using (
-    auth.uid() = user_id and
-    (select email_confirmed_at from auth.users where id = auth.uid()) is not null
-  )
+  using (auth.uid() = user_id)
   with check (auth.uid() = user_id);
-
 
 -- 8. Create function to handle new user
 -- This function automatically creates a profile for new users upon signup.
@@ -100,3 +90,45 @@ $$;
 create trigger on_auth_user_created
   after insert on auth.users
   for each row execute procedure public.handle_new_user();
+
+-- 10. Create function to update streak count
+-- This function calculates the user's streak based on their skill history.
+create or replace function public.update_streak()
+returns trigger
+language plpgsql
+as $$
+declare
+  streak integer;
+begin
+  with history as (
+    select
+      date,
+      lag(date, 1) over (order by date) as prev_date
+    from
+      public.skill_history
+    where
+      user_id = new.user_id and completed = true
+  )
+  select
+    count(*)
+  into
+    streak
+  from
+    history
+  where
+    date = (select max(date) from history) and (date - prev_date = 1 or prev_date is null);
+
+  update public.profiles
+  set streak_count = streak
+  where id = new.user_id;
+
+  return new;
+end;
+$$;
+
+-- 11. Create trigger to update streak on skill completion
+create trigger on_skill_history_change
+  after insert or update of completed on public.skill_history
+  for each row
+  when (new.completed = true)
+  execute procedure public.update_streak();

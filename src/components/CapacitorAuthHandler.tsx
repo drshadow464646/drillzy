@@ -31,7 +31,6 @@ const CapacitorAuthHandler = ({ children }: { children: React.ReactNode }) => {
           if (!error) {
             // Redirect to a protected route after successful session set
             router.push('/home');
-            router.refresh();
           } else {
             console.error('Error setting Supabase session:', error);
             // Optionally redirect to login with an error

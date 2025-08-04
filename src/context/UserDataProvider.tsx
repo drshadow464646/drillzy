@@ -130,7 +130,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
 
         const { error } = await supabase
             .from('skill_history')
-            .update({ skill_id: text })
+            .update({ skill_id: text, completed: false })
             .eq('user_id', userData.id)
             .eq('date', todayStr);
 
@@ -172,7 +172,16 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         user_id: userData.id
     };
 
-    const { data, error } = await supabase
+    // Optimistically update UI
+    setUserData(prev => {
+        if (!prev) return null;
+        // The type from Supabase might have more fields, so we just cast what we know.
+        const optimisticHistoryItem = newSkillHistoryItem as SkillHistoryItem;
+        const newHistory = [optimisticHistoryItem, ...prev.skillHistory];
+        return { ...prev, skillHistory: newHistory };
+    });
+
+    const { error } = await supabase
       .from('skill_history')
       .insert(newSkillHistoryItem)
       .select()
@@ -180,20 +189,15 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
 
     if (error) {
         console.error("Error creating placeholder skill:", error);
+        // Revert optimistic update
+        refreshUserData();
         return;
     }
     
-    // Optimistically update UI
-    setUserData(prev => {
-        if (!prev) return null;
-        const newHistory = [data, ...prev.skillHistory];
-        return { ...prev, skillHistory: newHistory };
-    });
-
     // Now, generate the skill
     await performSkillGeneration();
 
-  }, [userData, supabase]);
+  }, [userData, supabase, refreshUserData]);
 
   const burnSkill = useCallback(async () => {
       if (!userData) return;

@@ -84,7 +84,7 @@ function NotificationPrompt() {
 
 
 export default function HomePage() {
-  const { userData, isLoading, burnSkill, completeSkillForToday, assignSkillForToday } = useUserData();
+  const { userData, isLoading, completeSkillForToday, assignSkillForToday } = useUserData();
   const router = useRouter();
   const hasAssignedSkill = useRef(false);
   const [isClient, setIsClient] = useState(false);
@@ -153,7 +153,7 @@ export default function HomePage() {
             {isGenerating ? (
                  <div className="flex flex-col items-center gap-2">
                     <BrainCircuit className="h-8 w-8 text-primary animate-pulse" />
-                    <p className="text-muted-foreground">Generating a new skill for you...</p>
+                    <p className="text-muted-foreground">Finding a new skill for you...</p>
                  </div>
             ) : skillText ? (
                  <p className="text-2xl md:text-3xl font-bold text-foreground tracking-tight">
@@ -172,14 +172,10 @@ export default function HomePage() {
                     <span>Great job! Skill completed.</span>
                 </div>
             ) : !isNoSkillsLeft && (
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 animate-in fade-in duration-300">
+                <div className="grid grid-cols-1 gap-4 animate-in fade-in duration-300">
                      <Button size="lg" className="h-14 text-lg font-bold shadow-lg shadow-primary/20" onClick={completeSkillForToday}>
                         <Check className="h-6 w-6 mr-2"/>
                         Mark as Done
-                    </Button>
-                    <Button variant="ghost" size="lg" className="h-14 text-lg font-semibold" onClick={burnSkill}>
-                        <CornerDownRight className="h-6 w-6 mr-2"/>
-                        Shuffle Skill
                     </Button>
                 </div>
             )}

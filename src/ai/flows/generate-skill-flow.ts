@@ -8,6 +8,9 @@
  * - GenerateSkillOutput - The return type for the generateSkill function.
  */
 
+// THIS FILE IS NO LONGER IN USE AND WILL BE REMOVED IN A FUTURE UPDATE.
+// The app now uses a pre-defined list of skills from /src/lib/skills-data.ts
+
 import {ai} from '@/ai/genkit';
 import {z} from 'genkit';
 import type {Category} from '@/lib/types';

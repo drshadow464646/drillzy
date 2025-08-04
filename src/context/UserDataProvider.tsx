@@ -5,14 +5,14 @@ import React, { createContext, useContext, useState, ReactNode, useCallback, use
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { UserData, SkillHistoryItem } from '@/lib/types';
-import { generateSkill } from '@/ai/flows/generate-skill-flow';
 import { format, subDays, parseISO, isToday } from 'date-fns';
+import { ALL_SKILLS } from '@/lib/skills-data';
 
 interface UserDataContextType {
   userData: UserData | null;
   isLoading: boolean;
   signOut: () => Promise<void>;
-  burnSkill: () => Promise<void>;
+  burnSkill: () => Promise<void>; // This is now disabled, but we'll keep the function signature for now
   completeSkillForToday: () => Promise<void>;
   assignSkillForToday: () => void;
   refreshUserData: () => Promise<void>;
@@ -32,7 +32,6 @@ const calculateStreak = (history: SkillHistoryItem[]): number => {
     let streak = 0;
     let currentDate = new Date();
     
-    // If today is not completed, start checking from yesterday
     if (!completedDates.has(format(currentDate, 'yyyy-MM-dd'))) {
         currentDate = subDays(currentDate, 1);
     }
@@ -113,61 +112,33 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         authListener.subscription.unsubscribe();
     };
   }, [supabase, router, refreshUserData]);
-  
-  const performSkillGeneration = async (isBurn: boolean = false) => {
-    if (!userData || !userData.category) return;
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
-
-    const existingSkills = userData.skillHistory
-        .filter(item => !(isBurn && item.date === todayStr)) // Exclude today's skill if burning
-        .map(item => item.skill_id);
-
-    try {
-        const { text } = await generateSkill({
-            category: userData.category,
-            existingSkills,
-        });
-
-        const { error } = await supabase
-            .from('skill_history')
-            .update({ skill_id: text, completed: false })
-            .eq('user_id', userData.id)
-            .eq('date', todayStr);
-
-        if (error) throw error;
-        
-        setUserData(prev => {
-            if (!prev) return null;
-            const newHistory = prev.skillHistory.map(item =>
-                item.date === todayStr ? { ...item, skill_id: text, completed: false } : item
-            );
-            return { ...prev, skillHistory: newHistory };
-        });
-
-    } catch (err) {
-        console.error("Error generating or saving skill:", err);
-         setUserData(prev => {
-            if (!prev) return null;
-            const newHistory = prev.skillHistory.map(item =>
-                item.date === todayStr ? { ...item, skill_id: "Error generating skill. Please try again." } : item
-            );
-            return { ...prev, skillHistory: newHistory };
-        });
-    }
-};
-
 
   const assignSkillForToday = useCallback(async () => {
-    if (!userData) return;
+    if (!userData || !userData.category) return;
+
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const hasSkillForToday = userData.skillHistory.some(item => item.date === todayStr);
 
-    if (hasSkillForToday) return;
+    if (hasSkillForToday) {
+        return; // A skill is already assigned for today.
+    }
 
-    // Create a placeholder record first
-    const newSkillHistoryItem = {
+    // Find a new skill from the pre-defined list.
+    const userCategorySkills = ALL_SKILLS.filter(s => s.category === userData.category);
+    const completedSkillIds = new Set(userData.skillHistory.map(h => h.skill_id));
+
+    let newSkillText = "NO_SKILLS_LEFT";
+    for (const skill of userCategorySkills) {
+        if (!completedSkillIds.has(skill.text)) {
+            newSkillText = skill.text;
+            break;
+        }
+    }
+
+    // Create the new history record.
+    const newSkillHistoryItem: Omit<SkillHistoryItem, 'user_id'> & { user_id: string } = {
         date: todayStr,
-        skill_id: "GENERATING", // Placeholder text
+        skill_id: newSkillText,
         completed: false,
         user_id: userData.id
     };
@@ -175,51 +146,33 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     // Optimistically update UI
     setUserData(prev => {
         if (!prev) return null;
-        // The type from Supabase might have more fields, so we just cast what we know.
         const optimisticHistoryItem = newSkillHistoryItem as SkillHistoryItem;
         const newHistory = [optimisticHistoryItem, ...prev.skillHistory];
         return { ...prev, skillHistory: newHistory };
     });
 
+    // Save to Supabase
     const { error } = await supabase
       .from('skill_history')
-      .insert(newSkillHistoryItem)
-      .select()
-      .single();
+      .insert(newSkillHistoryItem);
 
     if (error) {
-        console.error("Error creating placeholder skill:", error);
+        console.error("Error assigning new skill:", error);
         // Revert optimistic update
-        refreshUserData();
-        return;
+        await refreshUserData();
     }
-    
-    // Now, generate the skill
-    await performSkillGeneration();
+}, [userData, supabase, refreshUserData]);
 
-  }, [userData, supabase, refreshUserData]);
 
+  // The "burn" or "shuffle" functionality is no longer needed with a pre-defined list.
+  // We'll leave the function here to avoid breaking component props, but it will do nothing.
   const burnSkill = useCallback(async () => {
-      if (!userData) return;
-      const todayStr = format(new Date(), 'yyyy-MM-dd');
-      
-      // Optimistically update the UI to show generating state
-      setUserData(prev => {
-          if (!prev) return null;
-          const newHistory = prev.skillHistory.map(item => 
-              item.date === todayStr ? { ...item, skill_id: "GENERATING", completed: false } : item
-          );
-          return { ...prev, skillHistory: newHistory };
-      });
-      
-      // Generate the new skill
-      await performSkillGeneration(true);
-
-  }, [userData, supabase]);
+    console.log("Shuffle skill is disabled.");
+  }, []);
   
   const completeSkillForToday = useCallback(async () => {
     if (!userData) return;
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
+    const todayStr = format(new date(), 'yyyy-MM-dd');
     
     // Optimistically update the UI
     setUserData(prev => {

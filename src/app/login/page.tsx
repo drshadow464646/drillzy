@@ -1,4 +1,3 @@
-
 import { Suspense } from 'react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -8,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { login, signup } from './actions';
 import Link from 'next/link';
 import LoginMessage from './LoginMessage';
+import { LoginButton } from './LoginButton';
 
 export default function LoginPage() {
     return (
@@ -49,7 +49,7 @@ export default function LoginPage() {
                                     <Label htmlFor="password-login">Password</Label>
                                     <Input id="password-login" name="password" type="password" required />
                                 </div>
-                                <Button type="submit" className="w-full">Login</Button>
+                                <LoginButton />
                             </form>
                             <Button variant="link" size="sm" asChild className="p-0 h-auto w-full mt-2">
                                 <Link href="/forgot-password">

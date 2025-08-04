@@ -8,8 +8,9 @@ export interface Skill {
 }
 
 export interface SkillHistoryItem {
+  user_id: string;
   date: string; // YYYY-MM-DD
-  skillId: string;
+  skill_id: string;
   completed: boolean;
 }
 

@@ -46,18 +46,18 @@ export default function StreakPage() {
         return "Go to the Home screen to get your skill for today!";
     }
 
-    if (todayHistoryItem.skillId === "NO_SKILLS_LEFT") {
+    if (todayHistoryItem.skill_id === "NO_SKILLS_LEFT") {
         return "You've unlocked all skills! 🏆";
     }
     
-    const skill = getSkillById(todayHistoryItem.skillId);
+    const skill = getSkillById(todayHistoryItem.skill_id);
     return skill?.text || "Loading skill...";
   }, [userData, isClient]);
 
   const completedDays = useMemo(() => {
     if (!isClient || !userData) return [];
     return userData.skillHistory
-        .filter(item => item.completed && item.skillId !== "NO_SKILLS_LEFT")
+        .filter(item => item.completed && item.skill_id !== "NO_SKILLS_LEFT")
         .map(item => parseISO(item.date));
   }, [userData, isClient]);
 
@@ -65,8 +65,8 @@ export default function StreakPage() {
     if (!selectedDay || !userData) return null;
     const dateStr = format(selectedDay, 'yyyy-MM-dd');
     const historyItem = userData.skillHistory.find(item => item.date === dateStr && item.completed);
-    if (historyItem && historyItem.skillId !== 'NO_SKILLS_LEFT') {
-        const skill = getSkillById(historyItem.skillId);
+    if (historyItem && historyItem.skill_id !== 'NO_SKILLS_LEFT') {
+        const skill = getSkillById(historyItem.skill_id);
         if (skill) {
             return {
                 date: format(selectedDay, 'PPP'),
@@ -222,13 +222,13 @@ export default function StreakPage() {
                         <CardTitle className="text-lg">Completed Skill History</CardTitle>
                     </CardHeader>
                     <CardContent>
-                        {userData.skillHistory.filter(s => s.completed && s.skillId !== 'NO_SKILLS_LEFT').length > 0 ? (
+                        {userData.skillHistory.filter(s => s.completed && s.skill_id !== 'NO_SKILLS_LEFT').length > 0 ? (
                              <ul className="space-y-4 max-h-[24rem] overflow-y-auto pr-2">
                                 {userData.skillHistory
-                                    .filter(s => s.completed && s.skillId !== 'NO_SKILLS_LEFT')
+                                    .filter(s => s.completed && s.skill_id !== 'NO_SKILLS_LEFT')
                                     .slice(0, 10)
                                     .map((item) => {
-                                        const skill = getSkillById(item.skillId);
+                                        const skill = getSkillById(item.skill_id);
                                         if (!skill) return null;
                                         return (
                                             <li key={`${item.date}-${skill.id}`} className="flex flex-col border-b pb-2 last:border-none">

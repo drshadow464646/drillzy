@@ -9,7 +9,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Zap, CornerDownRight, Check, BrainCircuit, BarChartHorizontal, TrendingUp, Lightbulb, BellRing } from 'lucide-react';
 import { getSkillById } from '@/lib/skills';
 import { Skeleton } from '@/components/ui/skeleton';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import type { SkillHistoryItem } from '@/lib/types';
 import WeeklyProgressChart from '@/components/WeeklyProgressChart';
 import CumulativeSkillsChart from '@/components/CumulativeSkillsChart';
@@ -95,11 +95,11 @@ export default function HomePage() {
   }, []);
 
   useEffect(() => {
-    if (userData && !hasAssignedSkill.current && isClient) {
+    if (userData && !isLoading && !hasAssignedSkill.current && isClient) {
         assignSkillForToday();
         hasAssignedSkill.current = true;
     }
-  }, [userData, assignSkillForToday, isClient]);
+  }, [userData, isLoading, assignSkillForToday, isClient]);
 
   const todayHistoryItem = useMemo(() => {
     if (!userData || !isClient) return null;
@@ -109,13 +109,13 @@ export default function HomePage() {
 
   const skillText = useMemo(() => {
       if (!todayHistoryItem) return '';
-      if (todayHistoryItem.skillId === "NO_SKILLS_LEFT") return "You've unlocked all skills! 🏆";
-      const skill = getSkillById(todayHistoryItem.skillId);
+      if (todayHistoryItem.skill_id === "NO_SKILLS_LEFT") return "You've unlocked all skills! 🏆";
+      const skill = getSkillById(todayHistoryItem.skill_id);
       return skill?.text || '';
   }, [todayHistoryItem]);
 
   const isCompleted = todayHistoryItem?.completed ?? false;
-  const isNoSkillsLeft = todayHistoryItem?.skillId === "NO_SKILLS_LEFT";
+  const isNoSkillsLeft = todayHistoryItem?.skill_id === "NO_SKILLS_LEFT";
 
   if (isLoading || !userData || !isClient) {
     return (

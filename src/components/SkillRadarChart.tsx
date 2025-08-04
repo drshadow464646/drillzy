@@ -21,8 +21,8 @@ const SkillRadarChart: React.FC<SkillRadarChartProps> = ({ history }) => {
         };
 
         const completedSkills = history
-          .filter(item => item.completed && item.skillId !== 'NO_SKILLS_LEFT')
-          .map(item => getSkillById(item.skillId))
+          .filter(item => item.completed && item.skill_id !== 'NO_SKILLS_LEFT')
+          .map(item => getSkillById(item.skill_id))
           .filter(Boolean);
         
         // This is a placeholder for now until we have categories for skills.

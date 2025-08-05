@@ -5,7 +5,7 @@ import React, { createContext, useContext, useState, ReactNode, useCallback, use
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { UserData, SkillHistoryItem } from '@/lib/types';
-import { format, subDays, parseISO } from 'date-fns';
+import { format, subDays, parseISO, isToday } from 'date-fns';
 import { getSkillsByCategory, getSkillById } from '@/lib/skills-data';
 
 interface UserDataContextType {
@@ -121,10 +121,9 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
 
   const assignSkillForToday = useCallback(async () => {
     if (!userData || !userData.category) return;
-
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const hasSkillForToday = userData.skillHistory.some(item => item.date === todayStr);
-    
+
     if (hasSkillForToday) {
         return;
     }
@@ -134,16 +133,13 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     const userCategorySkills = getSkillsByCategory(userData.category);
     const usedSkillIds = new Set(userData.skillHistory.map(h => h.skill_id));
 
-    let newSkillText = "NO_SKILLS_LEFT";
-    // Find the first skill in the category list that hasn't been used
+    let newSkillId = "NO_SKILLS_LEFT";
     for (const skill of userCategorySkills) {
-        if (!usedSkillIds.has(skill.text)) {
-            newSkillText = skill.text;
+        if (!usedSkillIds.has(skill.id)) {
+            newSkillId = skill.id;
             break;
         }
     }
-
-    const newSkillId = getSkillById(newSkillText)?.id || 'NO_SKILLS_LEFT';
     
     const newSkillHistoryItem: Omit<SkillHistoryItem, 'user_id'> & { user_id: string } = {
         date: todayStr,
@@ -159,7 +155,6 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     if (error) {
         console.error("Error assigning new skill:", error);
     } 
-    // Always refresh to get the latest state from DB
     await refreshUserData();
 }, [userData, supabase, refreshUserData]);
 
@@ -220,3 +215,5 @@ export function useUserData() {
   }
   return context;
 }
+
+    

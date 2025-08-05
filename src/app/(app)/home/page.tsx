@@ -3,19 +3,17 @@
 
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { useUserData } from '@/context/UserDataProvider';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Zap, CornerDownRight, Check, BrainCircuit, BarChartHorizontal, TrendingUp, Lightbulb, BellRing } from 'lucide-react';
+import { Zap, Check, BrainCircuit, BarChartHorizontal, TrendingUp, Lightbulb, BellRing } from 'lucide-react';
 import { Skeleton } from '@/components/ui/skeleton';
-import { format, parseISO } from 'date-fns';
-import type { SkillHistoryItem } from '@/lib/types';
 import WeeklyProgressChart from '@/components/WeeklyProgressChart';
 import CumulativeSkillsChart from '@/components/CumulativeSkillsChart';
 import { checkPermissions, requestPermissions, scheduleDailyNotification } from '@/lib/notifications';
 import { Capacitor } from '@capacitor/core';
 import { useToast } from '@/hooks/use-toast';
-import { getSkillById } from '@/lib/skills-data';
+import type { SkillHistoryItem } from '@/lib/types';
+import { useTodaySkill } from '@/hooks/use-today-skill';
 
 function NotificationPrompt() {
   const [permissionStatus, setPermissionStatus] = useState<'granted' | 'denied' | 'prompt' | 'checking'>('checking');
@@ -86,9 +84,9 @@ function NotificationPrompt() {
 
 export default function HomePage() {
   const { userData, isLoading, completeSkillForToday, assignSkillForToday } = useUserData();
-  const router = useRouter();
   const hasAssignedSkill = useRef(false);
   const [isClient, setIsClient] = useState(false);
+  const { skillText, isCompleted, isGenerating, isNoSkillsLeft } = useTodaySkill();
 
   useEffect(() => {
     setIsClient(true);
@@ -100,20 +98,6 @@ export default function HomePage() {
         hasAssignedSkill.current = true;
     }
   }, [userData, isLoading, assignSkillForToday, isClient]);
-
-  const todayHistoryItem = useMemo(() => {
-    if (!userData || !isClient) return null;
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
-    return userData.skillHistory.find(item => item.date === todayStr);
-  }, [userData, isClient]);
-  
-  const skillId = todayHistoryItem?.skill_id;
-  const skill = skillId ? getSkillById(skillId) : null;
-  const skillText = skill?.text || '';
-
-  const isCompleted = todayHistoryItem?.completed ?? false;
-  const isNoSkillsLeft = skillId === "NO_SKILLS_LEFT";
-  const isGenerating = !skillId || skillId === "GENERATING";
 
 
   if (isLoading || !userData || !isClient) {
@@ -214,3 +198,5 @@ export default function HomePage() {
     </div>
   );
 }
+
+    

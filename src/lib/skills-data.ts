@@ -3,6 +3,10 @@ import type { Skill, Category } from './types';
 
 // This function allows us to get a specific skill without loading all 4000 into memory.
 export function getSkillById(id: string): Skill | undefined {
+  if (!id || id === 'NO_SKILLS_LEFT' || id === 'GENERATING') {
+    return undefined;
+  }
+  
   const categoryPrefix = id.charAt(0);
   let skillSet: Skill[] = [];
 
@@ -108,3 +112,5 @@ const CONNECTOR_SKILLS: Skill[] = [
   { id: 'N015', text: 'Schedule a 10-minute coffee chat (virtual or in-person) with a colleague to catch up.', category: 'connector' },
   // ... continue for 1000 skills
 ];
+
+    

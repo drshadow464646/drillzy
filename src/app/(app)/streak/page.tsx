@@ -2,16 +2,17 @@
 "use client";
 
 import { useUserData } from '@/context/UserDataProvider';
-import { useRouter } from 'next/navigation';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Calendar } from '@/components/ui/calendar';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Award, CalendarCheck, Flame, PieChart as PieChartIcon, Quote, Sparkles, Star, Trophy } from 'lucide-react';
+import { Award, CalendarCheck, Flame, Quote, Sparkles, Star, Trophy } from 'lucide-react';
 import { format, isSameDay, parseISO } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { DayModifiers } from 'react-day-picker';
 import type { SkillHistoryItem } from '@/lib/types';
 import { getSkillById } from '@/lib/skills-data';
+import { useTodaySkill } from '@/hooks/use-today-skill';
+
 
 const achievements = [
     { days: 3, label: "3-Day Spark", icon: Flame },
@@ -22,11 +23,11 @@ const achievements = [
 
 export default function StreakPage() {
   const { userData, isLoading } = useUserData();
+  const { skillText: currentSkillText } = useTodaySkill();
   const [selectedDay, setSelectedDay] = useState<Date | undefined>();
   const [isClient, setIsClient] = useState(false);
   const [fromMonth, setFromMonth] = useState<Date | undefined>();
   const [toMonth, setToMonth] = useState<Date | undefined>();
-  const [currentSkillText, setCurrentSkillText] = useState("Loading skill...");
   const [selectedSkillInfo, setSelectedSkillInfo] = useState<{date: string, text: string} | null>(null);
   
   useEffect(() => {
@@ -40,31 +41,10 @@ export default function StreakPage() {
 
   const completedSkills = useMemo(() => {
     if (!userData) return [];
-    return userData.skillHistory.filter(s => s.completed && s.skill_id !== 'NO_SKILLS_LEFT' && s.skill_id !== 'GENERATING');
+    return userData.skillHistory.filter(s => s.completed && s.skill_id !== 'NO_SKILLS_LEFT' && s.skill_id !== 'GENERATING')
+        .sort((a,b) => parseISO(b.date).getTime() - parseISO(a.date).getTime());
   }, [userData]);
 
-  useEffect(() => {
-    if (!isClient || !userData || !userData.skillHistory.length) {
-        setCurrentSkillText("Loading skill...");
-        return;
-    };
-    
-    const todayStr = format(new Date(), 'yyyy-MM-dd');
-    const todayHistoryItem = userData.skillHistory.find(item => item.date === todayStr);
-    
-    if (!todayHistoryItem) {
-        setCurrentSkillText("Go to the Home screen to get your skill for today!");
-        return;
-    }
-
-    if (todayHistoryItem.skill_id === "NO_SKILLS_LEFT" || todayHistoryItem.skill_id === "GENERATING") {
-        setCurrentSkillText("Generating your skill on the Home screen...");
-        return;
-    }
-    
-    const skill = getSkillById(todayHistoryItem.skill_id);
-    setCurrentSkillText(skill?.text || "Skill not found.");
-  }, [userData, isClient]);
 
   const completedDays = useMemo(() => {
     if (!isClient || !userData) return [];
@@ -80,12 +60,16 @@ export default function StreakPage() {
     };
     const dateStr = format(selectedDay, 'yyyy-MM-dd');
     const historyItem = userData.skillHistory.find(item => item.date === dateStr && item.completed);
-    if (historyItem && historyItem.skill_id !== 'NO_SKILLS_LEFT' && historyItem.skill_id !== 'GENERATING') {
+    if (historyItem && historyItem.skill_id && historyItem.skill_id !== 'NO_SKILLS_LEFT' && historyItem.skill_id !== 'GENERATING') {
         const skill = getSkillById(historyItem.skill_id);
-        setSelectedSkillInfo({
-            date: format(selectedDay, 'PPP'),
-            text: skill?.text || "Skill not found."
-        });
+        if (skill) {
+            setSelectedSkillInfo({
+                date: format(selectedDay, 'PPP'),
+                text: skill.text
+            });
+        } else {
+             setSelectedSkillInfo(null);
+        }
     } else {
         setSelectedSkillInfo(null);
     }
@@ -159,7 +143,7 @@ export default function StreakPage() {
                      <CalendarCheck className="h-5 w-5 text-primary" />
                 </CardHeader>
                 <CardContent>
-                    <p className="text-xl font-semibold">{currentSkillText}</p>
+                    <p className="text-xl font-semibold">{currentSkillText || "Go to Home to get today's skill!"}</p>
                 </CardContent>
             </Card>
         </div>
@@ -257,10 +241,13 @@ export default function StreakPage() {
 }
 
 function CompletedSkillItem({ item }: { item: SkillHistoryItem }) {
-    if (!item || !item.skill_id || item.skill_id === 'NO_SKILLS_LEFT' || item.skill_id === 'GENERATING') {
-        return null;
-    }
-    const skill = getSkillById(item.skill_id);
+    const skill = useMemo(() => {
+        if (!item || !item.skill_id || item.skill_id === 'NO_SKILLS_LEFT' || item.skill_id === 'GENERATING') {
+            return null;
+        }
+        return getSkillById(item.skill_id);
+    }, [item]);
+
     if (!skill) return null;
 
     return (
@@ -270,3 +257,5 @@ function CompletedSkillItem({ item }: { item: SkillHistoryItem }) {
         </li>
     );
 }
+
+    

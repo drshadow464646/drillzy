@@ -2,8 +2,8 @@
 import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
-  appId: 'com.skilltrack.app',
-  appName: 'SkillTrack',
+  appId: 'com.drillzy.app',
+  appName: 'Drillzy',
   // webDir is removed because we are loading a remote URL, not local files.
   // webDir: 'out', 
   bundledWebRuntime: false,
@@ -12,7 +12,7 @@ const config: CapacitorConfig = {
     url: 'https://[YOUR_VERCEL_URL].vercel.app', 
     cleartext: true
   },
-  // Add this to your Supabase Redirect URLs: skilltrack://auth/callback
+  // Add this to your Supabase Redirect URLs: drillzy://auth/callback
   plugins: {
     CapacitorCookies: {
       enabled: true,

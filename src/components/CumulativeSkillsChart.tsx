@@ -11,64 +11,24 @@ interface CumulativeSkillsChartProps {
     history: SkillHistoryItem[];
 }
 
-const CumulativeSkillsChart: React.FC<CumulativeSkillsChartProps> = ({ history }) => {
-    const [chartData, setChartData] = React.useState<any[]>([]);
-    const [isLoading, setIsLoading] = React.useState(true);
-
-    React.useEffect(() => {
+const CumulativeSkillsChart: React.FC<CumulativeSkillsChartProps> = React.memo(({ history }) => {
+    const chartData = React.useMemo(() => {
         const completedHistory = history
             .filter(item => item.completed && item.skill_id !== "NO_SKILLS_LEFT" && item.skill_id !== 'GENERATING')
             .sort((a, b) => parseISO(a.date).getTime() - parseISO(b.date).getTime());
 
         if (completedHistory.length === 0) {
-            setIsLoading(false);
-            setChartData([]);
-            return;
+            return [];
         }
-
-        const firstDay = startOfDay(parseISO(completedHistory[0].date));
-        const lastDay = startOfDay(new Date());
         
-        if (firstDay > lastDay) {
-             const data = [{
-                date: format(firstDay, 'MMM d'),
-                Skills: completedHistory.length
-            }];
-            setChartData(data);
-            setIsLoading(false);
-            return;
-        }
+        const data = completedHistory.map((item, index) => ({
+            date: format(parseISO(item.date), 'MMM d'),
+            Skills: index + 1,
+        }));
 
-        const interval = eachDayOfInterval({ start: firstDay, end: lastDay });
-
-        let cumulativeCount = 0;
-        const dateMap = new Map<string, number>();
-        completedHistory.forEach(item => {
-            const dateStr = format(parseISO(item.date), 'yyyy-MM-dd');
-            dateMap.set(dateStr, (dateMap.get(dateStr) || 0) + 1);
-        });
-        
-        let lastKnownCount = 0;
-        const data = interval.map(day => {
-            const dateStr = format(day, 'yyyy-MM-dd');
-            if (dateMap.has(dateStr)) {
-                cumulativeCount += dateMap.get(dateStr)!;
-            }
-            lastKnownCount = cumulativeCount;
-            return {
-                date: format(day, 'MMM d'),
-                Skills: lastKnownCount,
-            };
-        });
-
-        setChartData(data);
-        setIsLoading(false);
+        return data;
 
     }, [history]);
-
-    if (isLoading) {
-        return <Skeleton className="w-full h-full" />;
-    }
 
     if (chartData.length < 2) {
         return (
@@ -111,6 +71,7 @@ const CumulativeSkillsChart: React.FC<CumulativeSkillsChartProps> = ({ history }
             </AreaChart>
         </ResponsiveContainer>
     );
-};
+});
 
+CumulativeSkillsChart.displayName = 'CumulativeSkillsChart';
 export default CumulativeSkillsChart;

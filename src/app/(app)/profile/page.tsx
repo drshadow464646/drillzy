@@ -11,6 +11,9 @@ import SkillRadarChart from '@/components/SkillRadarChart';
 import SkillCategoryPieChart from '@/components/SkillCategoryPieChart';
 import type { SkillHistoryItem } from '@/lib/types';
 
+const MemoizedSkillRadarChart = React.memo(SkillRadarChart);
+const MemoizedSkillCategoryPieChart = React.memo(SkillCategoryPieChart);
+
 
 export default function ProfilePage() {
     const { userData, isLoading } = useUserData();
@@ -72,7 +75,7 @@ export default function ProfilePage() {
                             <CardTitle className="text-lg">Skill Balance</CardTitle>
                         </CardHeader>
                         <CardContent>
-                           <SkillRadarChart history={userData.skillHistory as SkillHistoryItem[]} />
+                           <MemoizedSkillRadarChart history={userData.skillHistory as SkillHistoryItem[]} />
                         </CardContent>
                     </Card>
 
@@ -82,7 +85,7 @@ export default function ProfilePage() {
                             <CardTitle className="text-lg">Category Breakdown</CardTitle>
                         </CardHeader>
                         <CardContent className="h-[250px] flex items-center justify-center">
-                           <SkillCategoryPieChart history={userData.skillHistory as SkillHistoryItem[]} />
+                           <MemoizedSkillCategoryPieChart history={userData.skillHistory as SkillHistoryItem[]} />
                         </CardContent>
                     </Card>
                 </div>

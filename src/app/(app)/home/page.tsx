@@ -15,6 +15,9 @@ import { useToast } from '@/hooks/use-toast';
 import type { SkillHistoryItem } from '@/lib/types';
 import { useTodaySkill } from '@/hooks/use-today-skill';
 
+const MemoizedWeeklyProgressChart = React.memo(WeeklyProgressChart);
+const MemoizedCumulativeSkillsChart = React.memo(CumulativeSkillsChart);
+
 function NotificationPrompt() {
   const [permissionStatus, setPermissionStatus] = useState<'granted' | 'denied' | 'prompt' | 'checking'>('checking');
   const { toast } = useToast();
@@ -180,7 +183,7 @@ export default function HomePage() {
                     <CardTitle className="text-lg">Cumulative Growth</CardTitle>
                 </CardHeader>
                 <CardContent className="h-[300px] flex items-center justify-center pt-4">
-                   <CumulativeSkillsChart history={userData.skillHistory as SkillHistoryItem[]} />
+                   <MemoizedCumulativeSkillsChart history={userData.skillHistory as SkillHistoryItem[]} />
                 </CardContent>
             </Card>
 
@@ -190,7 +193,7 @@ export default function HomePage() {
                     <CardTitle className="text-lg">Weekly Progress</CardTitle>
                 </CardHeader>
                 <CardContent className="h-[250px] flex items-center justify-center">
-                   <WeeklyProgressChart history={userData.skillHistory as SkillHistoryItem[]} />
+                   <MemoizedWeeklyProgressChart history={userData.skillHistory as SkillHistoryItem[]} />
                 </CardContent>
             </Card>
         </div>

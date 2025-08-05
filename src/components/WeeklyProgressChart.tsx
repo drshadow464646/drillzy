@@ -11,11 +11,8 @@ interface WeeklyProgressChartProps {
     history: SkillHistoryItem[];
 }
 
-const WeeklyProgressChart: React.FC<WeeklyProgressChartProps> = ({ history }) => {
-    const [chartData, setChartData] = React.useState<Array<{ name: string; completed: number; }>>([]);
-    const [isLoading, setIsLoading] = React.useState(true);
-
-    React.useEffect(() => {
+const WeeklyProgressChart: React.FC<WeeklyProgressChartProps> = React.memo(({ history }) => {
+    const chartData = React.useMemo(() => {
         const last7Days = Array.from({ length: 7 }).map((_, i) => subDays(new Date(), i)).reverse();
         const completedHistory = history.filter(item => item.completed);
         
@@ -33,13 +30,8 @@ const WeeklyProgressChart: React.FC<WeeklyProgressChartProps> = ({ history }) =>
                 completed: completedOnDay ? 1 : 0,
             };
         });
-        setChartData(data);
-        setIsLoading(false);
+        return data;
     }, [history]);
-    
-    if (isLoading) {
-        return <Skeleton className="h-full w-full" />;
-    }
 
     const totalCompleted = chartData.reduce((sum, day) => sum + day.completed, 0);
 
@@ -80,6 +72,7 @@ const WeeklyProgressChart: React.FC<WeeklyProgressChartProps> = ({ history }) =>
             </BarChart>
         </ResponsiveContainer>
     );
-};
+});
 
+WeeklyProgressChart.displayName = 'WeeklyProgressChart';
 export default WeeklyProgressChart;

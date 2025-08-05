@@ -68,7 +68,10 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
       
       const { data: history, error: historyError } = await supabase
         .from('skill_history')
-        .select('*')
+        .select(`
+          *,
+          skill:skills(*)
+        `)
         .eq('user_id', user.id)
         .order('date', { ascending: false });
 
@@ -142,7 +145,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         console.error("Error fetching next skill:", rpcError);
     }
     
-    const newSkillHistoryItem: Omit<SkillHistoryItem, 'user_id'> & { user_id: string } = {
+    const newSkillHistoryItem: Omit<SkillHistoryItem, 'user_id' | 'skill'> & { user_id: string } = {
         date: todayStr,
         skill_id: newSkillId,
         completed: false,

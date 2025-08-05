@@ -12,6 +12,7 @@ export interface SkillHistoryItem {
   date: string; // YYYY-MM-DD
   skill_id: string;
   completed: boolean;
+  skill?: Skill; // Optional: The full skill object can be joined.
 }
 
 export interface UserData {

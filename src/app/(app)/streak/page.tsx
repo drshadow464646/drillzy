@@ -11,8 +11,6 @@ import { Skeleton } from '@/components/ui/skeleton';
 import type { DayModifiers } from 'react-day-picker';
 import type { SkillHistoryItem, Skill } from '@/lib/types';
 import { useTodaySkill } from '@/hooks/use-today-skill';
-import { createClient } from '@/lib/supabase/client';
-
 
 const achievements = [
     { days: 3, label: "3-Day Spark", icon: Flame },
@@ -28,8 +26,6 @@ export default function StreakPage() {
   const [isClient, setIsClient] = useState(false);
   const [fromMonth, setFromMonth] = useState<Date | undefined>();
   const [toMonth, setToMonth] = useState<Date | undefined>();
-  const [selectedSkillInfo, setSelectedSkillInfo] = useState<{date: string, text: string} | null>(null);
-  const supabase = useMemo(() => createClient(), []);
   
   useEffect(() => {
     setIsClient(true);
@@ -42,9 +38,24 @@ export default function StreakPage() {
 
   const completedSkills = useMemo(() => {
     if (!userData) return [];
-    return userData.skillHistory.filter(s => s.completed && s.skill_id !== 'NO_SKILLS_LEFT' && s.skill_id !== 'GENERATING')
+    return userData.skillHistory
+        .filter(s => s.completed && s.skill)
         .sort((a,b) => parseISO(b.date).getTime() - parseISO(a.date).getTime());
   }, [userData]);
+
+  const selectedSkillInfo = useMemo(() => {
+    if (!selectedDay || !userData) return null;
+    const dateStr = format(selectedDay, 'yyyy-MM-dd');
+    const historyItem = userData.skillHistory.find(item => item.date === dateStr && item.completed && item.skill);
+    
+    if (historyItem && historyItem.skill) {
+      return {
+        date: format(selectedDay, 'PPP'),
+        text: historyItem.skill.text
+      };
+    }
+    return null;
+  }, [selectedDay, userData]);
 
 
   const completedDays = useMemo(() => {
@@ -53,36 +64,6 @@ export default function StreakPage() {
         .filter(item => item.completed && item.skill_id !== "NO_SKILLS_LEFT" && item.skill_id !== 'GENERATING')
         .map(item => parseISO(item.date));
   }, [userData, isClient]);
-
-  useEffect(() => {
-    if (!selectedDay || !userData) {
-        setSelectedSkillInfo(null);
-        return;
-    };
-    const findSkill = async () => {
-        const dateStr = format(selectedDay, 'yyyy-MM-dd');
-        const historyItem = userData.skillHistory.find(item => item.date === dateStr && item.completed);
-        if (historyItem && historyItem.skill_id && historyItem.skill_id !== 'NO_SKILLS_LEFT' && historyItem.skill_id !== 'GENERATING') {
-             const { data: skill, error } = await supabase
-                .from('skills')
-                .select('text')
-                .eq('id', historyItem.skill_id)
-                .single();
-
-            if (skill && !error) {
-                setSelectedSkillInfo({
-                    date: format(selectedDay, 'PPP'),
-                    text: skill.text
-                });
-            } else {
-                 setSelectedSkillInfo(null);
-            }
-        } else {
-            setSelectedSkillInfo(null);
-        }
-    }
-    findSkill();
-  }, [selectedDay, userData, supabase]);
 
 
   const handleDayClick = (day: Date, modifiers: DayModifiers) => {
@@ -250,26 +231,7 @@ export default function StreakPage() {
 }
 
 function CompletedSkillItem({ item }: { item: SkillHistoryItem }) {
-    const [skill, setSkill] = useState<Skill | null>(null);
-    const supabase = useMemo(() => createClient(), []);
-
-    useEffect(() => {
-        const fetchSkill = async () => {
-             if (item && item.skill_id && item.skill_id !== 'NO_SKILLS_LEFT' && item.skill_id !== 'GENERATING') {
-                const { data, error } = await supabase
-                    .from('skills')
-                    .select('*')
-                    .eq('id', item.skill_id)
-                    .single();
-                
-                if (data && !error) {
-                    setSkill(data);
-                }
-            }
-        };
-        fetchSkill();
-    }, [item, supabase]);
-
+    const { skill } = item;
 
     if (!skill) return null;
 

@@ -9,6 +9,7 @@ import { login, signup } from './actions';
 import Link from 'next/link';
 import LoginMessage from './LoginMessage';
 import { LoginButton } from './LoginButton';
+import { SignupButton } from './SignupButton';
 
 export default function LoginPage() {
     return (
@@ -80,7 +81,7 @@ export default function LoginPage() {
                                     <Label htmlFor="password-signup">Password</Label>
                                     <Input id="password-signup" name="password" type="password" required minLength={6} />
                                 </div>
-                                <Button type="submit" className="w-full">Create Account</Button>
+                                <SignupButton />
                                 <p className="text-xs text-center text-muted-foreground pt-2">
                                     After signing up, you'll need to click the verification link sent to your email address to log in.
                                 </p>

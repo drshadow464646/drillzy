@@ -19,6 +19,7 @@ interface UserDataContextType {
 
 const UserDataContext = createContext<UserDataContextType | undefined>(undefined);
 
+<<<<<<< HEAD
 const calculateStreak = (history: SkillHistoryItem[]): number => {
     if (!history || history.length === 0) return 0;
     
@@ -48,6 +49,8 @@ const calculateStreak = (history: SkillHistoryItem[]): number => {
     return streak;
 };
 
+=======
+>>>>>>> 3e1ca5c3cb9d7694b8f6e232e63ddbe3fd47b9da
 export function UserDataProvider({ children }: { children: ReactNode }) {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -80,21 +83,37 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         console.error("Error fetching skill history:", historyError);
       }
       
+<<<<<<< HEAD
       const skillHistory = (history || []).map(item => ({
           ...item,
           skill: Array.isArray(item.skill) ? item.skill[0] : item.skill,
           date: format(parseISO(item.date), 'yyyy-MM-dd'),
       }));
+=======
+      const skillHistory = history || [];
+
+      // Call the new SQL function to calculate the streak
+      const { data: streakCount, error: streakError } = await supabase.rpc('calculate_streak', { user_id_param: user.id });
+
+      if (streakError) {
+        console.error("Error fetching streak:", streakError);
+      }
+>>>>>>> 3e1ca5c3cb9d7694b8f6e232e63ddbe3fd47b9da
 
       const newUserData = {
         id: user.id,
         name: profile?.name || user.user_metadata.name || 'Learner',
         category: profile?.category || null,
         skillHistory: skillHistory as SkillHistoryItem[],
+<<<<<<< HEAD
         streakCount: calculateStreak(skillHistory),
       };
 
       setUserData(newUserData);
+=======
+        streakCount: streakCount || 0,
+      });
+>>>>>>> 3e1ca5c3cb9d7694b8f6e232e63ddbe3fd47b9da
 
     } else {
       setUserData(null);
@@ -126,6 +145,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     const hasSkillForToday = userData.skillHistory.some(item => item.date === todayStr);
 
+<<<<<<< HEAD
     if (hasSkillForToday) {
         return;
     }
@@ -164,6 +184,42 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     
     await refreshUserData();
 }, [userData, supabase, refreshUserData]);
+=======
+    // If a skill has already been assigned for today, don't do anything.
+    // The initializeUser function has already fetched the correct state.
+    if (hasSkillForToday) return;
+
+    // A skill has not been assigned. Let's assign one.
+    // We'll call initializeUser again after this to refresh the state.
+    setIsLoading(true);
+    const seenIds = userData.skillHistory.map(item => item.skill_id);
+    const newSkill = await getNewSkillAction(seenIds, userData.category || undefined);
+
+    const newSkillHistoryItem = {
+        user_id: userData.id,
+        date: todayStr,
+        skill_id: newSkill ? newSkill.id : "NO_SKILLS_LEFT",
+        completed: newSkill ? false : true,
+    };
+
+    const { error } = await supabase
+      .from('skill_history')
+      .insert(newSkillHistoryItem)
+      .select()
+      .single();
+
+    if (error) {
+        console.error("Error assigning skill:", error);
+        // Even if we error, we should probably stop loading
+        setIsLoading(false);
+        return;
+    }
+
+    // Crucially, re-fetch all user data to ensure UI consistency
+    await initializeUser();
+
+  }, [userData, supabase, initializeUser]);
+>>>>>>> 3e1ca5c3cb9d7694b8f6e232e63ddbe3fd47b9da
 
   const burnSkill = useCallback(async () => {
     console.warn("Shuffle/burn skill is disabled.");

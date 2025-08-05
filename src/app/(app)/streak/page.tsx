@@ -38,6 +38,7 @@ export default function StreakPage() {
 
   const completedSkills = useMemo(() => {
     if (!userData) return [];
+    // The skill object is already included in skillHistory, so we can sort directly
     return userData.skillHistory
         .filter(s => s.completed && s.skill)
         .sort((a,b) => parseISO(b.date).getTime() - parseISO(a.date).getTime());
@@ -46,6 +47,7 @@ export default function StreakPage() {
   const selectedSkillInfo = useMemo(() => {
     if (!selectedDay || !userData) return null;
     const dateStr = format(selectedDay, 'yyyy-MM-dd');
+    // The full skill object is already on the history item
     const historyItem = userData.skillHistory.find(item => item.date === dateStr && item.completed && item.skill);
     
     if (historyItem && historyItem.skill) {
@@ -231,6 +233,7 @@ export default function StreakPage() {
 }
 
 function CompletedSkillItem({ item }: { item: SkillHistoryItem }) {
+    // The full skill object is now directly available on the item.
     const { skill } = item;
 
     if (!skill) return null;

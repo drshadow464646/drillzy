@@ -12,7 +12,9 @@ export interface SkillHistoryItem {
   date: string; // YYYY-MM-DD
   skill_id: string;
   completed: boolean;
-  skill?: Skill; // Optional: The full skill object can be joined.
+  // This is the crucial change. 
+  // The 'skill' property can now hold the full Skill object from the 'skills' table.
+  skill?: Skill; 
 }
 
 export interface UserData {

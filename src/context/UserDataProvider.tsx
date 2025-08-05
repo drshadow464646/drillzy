@@ -31,6 +31,7 @@ const calculateStreak = (history: SkillHistoryItem[]): number => {
     let streak = 0;
     let currentDate = new Date();
     
+    // If today's skill is not completed, start checking from yesterday
     if (!completedDates.has(format(currentDate, 'yyyy-MM-dd'))) {
         currentDate = subDays(currentDate, 1);
     }
@@ -54,6 +55,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
   const supabase = useMemo(() => createClient(), []);
 
   const refreshUserData = useCallback(async () => {
+    // Keep isLoading true on first load, but not for background refreshes
     if (!userData) {
       setIsLoading(true);
     }
@@ -66,6 +68,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         .eq('id', user.id)
         .single();
       
+      // This is the corrected query. It relies on the foreign key relationship.
       const { data: history, error: historyError } = await supabase
         .from('skill_history')
         .select(`
@@ -79,8 +82,12 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         console.error("Error fetching skill history:", historyError);
       }
       
+      // The history now comes with the full skill object embedded.
       const skillHistory = (history || []).map(item => ({
           ...item,
+          // Supabase returns the joined item as an object, not an array when it's a to-one relationship.
+          // We ensure skill is either the object or null.
+          skill: Array.isArray(item.skill) ? item.skill[0] : item.skill,
           date: format(parseISO(item.date), 'yyyy-MM-dd'),
       }));
 
@@ -88,7 +95,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         id: user.id,
         name: profile?.name || user.user_metadata.name || 'Learner',
         category: profile?.category || null,
-        skillHistory: skillHistory,
+        skillHistory: skillHistory as SkillHistoryItem[], // Cast to the correct type
         streakCount: calculateStreak(skillHistory),
       };
 
@@ -99,6 +106,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     }
     setIsLoading(false);
   }, [supabase, userData]);
+
 
   useEffect(() => {
     refreshUserData();
@@ -127,11 +135,11 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         return;
     }
 
-    setUserData(prev => prev ? ({ ...prev, skillHistory: [{date: todayStr, skill_id: "GENERATING", completed: false, user_id: prev.id }, ...prev.skillHistory] }) : null);
+    // Immediately update UI to show loading state
+    setUserData(prev => prev ? ({ ...prev, skillHistory: [{date: todayStr, skill_id: "GENERATING", completed: false, user_id: prev.id, skill: undefined }, ...prev.skillHistory] }) : null);
 
     const usedSkillIds = userData.skillHistory.map(h => h.skill_id);
     
-    // Remote Procedure Call to get the next skill
     const { data: nextSkill, error: rpcError } = await supabase
       .rpc('get_next_skill', {
         p_category: userData.category,
@@ -145,7 +153,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         console.error("Error fetching next skill:", rpcError);
     }
     
-    const newSkillHistoryItem: Omit<SkillHistoryItem, 'user_id' | 'skill'> & { user_id: string } = {
+    const newSkillHistoryItem: Omit<SkillHistoryItem, 'skill'> & { user_id: string } = {
         date: todayStr,
         skill_id: newSkillId,
         completed: false,
@@ -159,6 +167,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     if (error) {
         console.error("Error assigning new skill:", error);
     } 
+    // Refresh all data to get the newly created skill with its text
     await refreshUserData();
 }, [userData, supabase, refreshUserData]);
 
@@ -170,6 +179,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     if (!userData) return;
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     
+    // Optimistically update the UI
     setUserData(prev => {
         if (!prev) return null;
         const newHistory = prev.skillHistory.map(item => 
@@ -179,6 +189,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         return { ...prev, skillHistory: newHistory, streakCount: newStreak };
     });
 
+    // Update the database
     const { error } = await supabase
         .from('skill_history')
         .update({ completed: true })

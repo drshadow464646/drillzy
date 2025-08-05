@@ -256,7 +256,7 @@ export default function StreakPage() {
 }
 
 function CompletedSkillItem({ item }: { item: SkillHistoryItem }) {
-    if (!item.skill_id || item.skill_id === 'NO_SKILLS_LEFT' || item.skill_id === 'GENERATING') {
+    if (!item || !item.skill_id || item.skill_id === 'NO_SKILLS_LEFT' || item.skill_id === 'GENERATING') {
         return null;
     }
 

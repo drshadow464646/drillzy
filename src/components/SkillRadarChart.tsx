@@ -27,7 +27,7 @@ const SkillRadarChart: React.FC<SkillRadarChartProps> = ({ history }) => {
             let total = 0;
 
             const completedHistory = history.filter(item => item.completed && item.skill_id !== 'NO_SKILLS_LEFT' && item.skill_id !== 'GENERATING');
-            const skillIds = completedHistory.map(item => item.skill_id);
+            const skillIds = completedHistory.map(item => item.skill_id).filter(id => id);
 
             if (skillIds.length > 0) {
                 const { data: skills, error } = await supabase
@@ -39,9 +39,11 @@ const SkillRadarChart: React.FC<SkillRadarChartProps> = ({ history }) => {
                     console.error("Error fetching skills for radar chart", error);
                 } else {
                     skills.forEach(skill => {
-                        const categoryName = skill.category.charAt(0).toUpperCase() + skill.category.slice(1);
-                        counts[categoryName]++;
-                        total++;
+                        if (skill.category) {
+                            const categoryName = skill.category.charAt(0).toUpperCase() + skill.category.slice(1);
+                            counts[categoryName]++;
+                            total++;
+                        }
                     });
                 }
             }

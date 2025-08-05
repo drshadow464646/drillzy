@@ -1,4 +1,3 @@
-
 // This file is no longer in use for fetching skills.
 // The skills have been moved to the Supabase database.
 // You will need to create a 'skills' table and populate it with the data that was previously in this file.

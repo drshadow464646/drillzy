@@ -43,7 +43,7 @@ const SkillCategoryPieChart: React.FC<SkillCategoryPieChartProps> = ({ history }
             const completedSkillItems = history
               .filter(item => item.completed && item.skill_id !== 'NO_SKILLS_LEFT' && item.skill_id !== 'GENERATING');
 
-            const skillIds = completedSkillItems.map(item => item.skill_id);
+            const skillIds = completedSkillItems.map(item => item.skill_id).filter(id => id);
 
             if (skillIds.length > 0) {
                  const { data: skills, error } = await supabase
@@ -55,7 +55,9 @@ const SkillCategoryPieChart: React.FC<SkillCategoryPieChartProps> = ({ history }
                     console.error("Error fetching skills for pie chart:", error);
                 } else {
                     skills.forEach(skill => {
-                        counts[skill.category as keyof typeof counts]++;
+                        if (skill.category) {
+                            counts[skill.category as keyof typeof counts]++;
+                        }
                     });
                 }
             }

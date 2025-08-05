@@ -1,4 +1,4 @@
-package com.skilltrack.app;
+package com.drillzy.app;
 
 import com.getcapacitor.BridgeActivity;
 

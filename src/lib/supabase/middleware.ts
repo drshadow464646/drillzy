@@ -14,16 +14,18 @@ export async function updateSession(request: NextRequest) {
     data: {user},
   } = await supabase.auth.getUser();
 
+  const { pathname } = request.nextUrl;
+
   // CHECK IF THE ROUTE IS PROTECTED
-  const protectedRoutes = ['/home', '/streak', '/leaderboard', '/settings', '/profile'];
+  const protectedRoutes = ['/home', '/streak', '/leaderboard', '/settings', '/profile', '/survey'];
   const isProtectedRoute = protectedRoutes.some((path) =>
-    request.nextUrl.pathname.startsWith(path)
+    pathname.startsWith(path)
   );
   
   // CHECK IF THE ROUTE IS A GUEST ROUTE
   const guestRoutes = ['/login', '/reset-password', '/forgot-password'];
   const isGuestRoute = guestRoutes.some((path) =>
-    request.nextUrl.pathname.startsWith(path)
+    pathname.startsWith(path)
   );
 
   if (!user && isProtectedRoute) {
@@ -48,9 +50,9 @@ export async function updateSession(request: NextRequest) {
       console.error('Error fetching profile in middleware', error);
     }
 
-    const isSurveyPage = request.nextUrl.pathname.startsWith('/survey');
+    const isSurveyPage = pathname.startsWith('/survey');
 
-    if (!profile?.category && !isSurveyPage && isProtectedRoute) {
+    if (!profile?.category && !isSurveyPage && (isProtectedRoute || pathname === '/')) {
       // If user has no category and is not on the survey page, redirect them.
       const url = request.nextUrl.clone();
       url.pathname = '/survey';
@@ -60,6 +62,16 @@ export async function updateSession(request: NextRequest) {
       const url = request.nextUrl.clone();
       url.pathname = '/home';
       return NextResponse.redirect(url);
+    } else if (profile?.category && pathname === '/') {
+       // If user is fully set up and hits the root, go to home.
+       const url = request.nextUrl.clone();
+       url.pathname = '/home';
+       return NextResponse.redirect(url);
+    } else if (!user && pathname === '/') {
+        // If user is logged out and hits the root, go to login.
+        const url = request.nextUrl.clone();
+        url.pathname = '/login';
+        return NextResponse.redirect(url);
     }
   }
 

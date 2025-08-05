@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 import type { UserData, SkillHistoryItem } from '@/lib/types';
 import { format, subDays, parseISO } from 'date-fns';
-import { ALL_SKILLS } from '@/lib/skills-data';
+import { getSkillsByCategory, getSkillById } from '@/lib/skills-data';
 
 interface UserDataContextType {
   userData: UserData | null;
@@ -131,10 +131,11 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
 
     setUserData(prev => prev ? ({ ...prev, skillHistory: [{date: todayStr, skill_id: "GENERATING", completed: false, user_id: prev.id }, ...prev.skillHistory] }) : null);
 
-    const userCategorySkills = ALL_SKILLS.filter(s => s.category === userData.category);
+    const userCategorySkills = getSkillsByCategory(userData.category);
     const usedSkillIds = new Set(userData.skillHistory.map(h => h.skill_id));
 
     let newSkillText = "NO_SKILLS_LEFT";
+    // Find the first skill in the category list that hasn't been used
     for (const skill of userCategorySkills) {
         if (!usedSkillIds.has(skill.text)) {
             newSkillText = skill.text;
@@ -155,10 +156,9 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
 
     if (error) {
         console.error("Error assigning new skill:", error);
-        await refreshUserData(); // Revert on error
-    } else {
-        await refreshUserData(); // Refresh to get the new state from DB
-    }
+    } 
+    // Always refresh to get the latest state from DB
+    await refreshUserData();
 }, [userData, supabase, refreshUserData]);
 
   const burnSkill = useCallback(async () => {

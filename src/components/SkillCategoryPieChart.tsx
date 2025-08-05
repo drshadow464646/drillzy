@@ -5,6 +5,7 @@ import * as React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import type { SkillHistoryItem } from '@/lib/types';
 import { Skeleton } from './ui/skeleton';
+import { getSkillById } from '@/lib/skills-data';
 
 interface SkillCategoryPieChartProps {
     history: SkillHistoryItem[];
@@ -32,10 +33,6 @@ const SkillCategoryPieChart: React.FC<SkillCategoryPieChartProps> = ({ history }
 
     React.useEffect(() => {
         async function processHistory() {
-            // This component is now harder to implement because skill category is not stored directly.
-            // For now, we will just show a placeholder. A more complex implementation would
-            // require fetching skill details or storing category in history.
-            // Let's assume a dummy distribution for now.
              const counts = {
                 thinker: 0,
                 builder: 0,
@@ -46,11 +43,18 @@ const SkillCategoryPieChart: React.FC<SkillCategoryPieChartProps> = ({ history }
             const completedSkillItems = history
               .filter(item => item.completed && item.skill_id !== 'NO_SKILLS_LEFT' && item.skill_id !== 'GENERATING');
 
-            // Since we don't have categories, we can't build this chart accurately.
-            // We'll leave it blank for now. A future implementation could store
-            // the category of the generated skill in the history table.
+            completedSkillItems.forEach(item => {
+                const skill = getSkillById(item.skill_id);
+                if (skill) {
+                    counts[skill.category]++;
+                }
+            });
             
-            setCategoryData([]);
+            const data = Object.entries(counts)
+                .map(([name, value]) => ({ name: name.charAt(0).toUpperCase() + name.slice(1), value }))
+                .filter(item => item.value > 0);
+
+            setCategoryData(data);
             setIsLoading(false);
         }
 
@@ -64,8 +68,8 @@ const SkillCategoryPieChart: React.FC<SkillCategoryPieChartProps> = ({ history }
     if (categoryData.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center h-full text-center">
-                <p className="text-muted-foreground font-semibold">Category data not available.</p>
-                <p className="text-sm text-muted-foreground mt-1">Skill categories will be analyzed in a future update!</p>
+                <p className="text-muted-foreground font-semibold">No category data yet.</p>
+                <p className="text-sm text-muted-foreground mt-1">Complete some skills to see your breakdown!</p>
             </div>
         )
     }

@@ -5,6 +5,7 @@ import * as React from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
 import type { SkillHistoryItem } from '@/lib/types';
 import { Skeleton } from './ui/skeleton';
+import { getSkillById } from '@/lib/skills-data';
 
 interface SkillRadarChartProps {
     history: SkillHistoryItem[];
@@ -16,12 +17,31 @@ const SkillRadarChart: React.FC<SkillRadarChartProps> = ({ history }) => {
 
     React.useEffect(() => {
         const processHistory = async () => {
-             // This component is now harder to implement because skill category is not stored directly.
-            // For now, we will just show a placeholder.
-            setChartData({
-                data: [],
-                total: 0
+            const counts: { [key: string]: number } = {
+                Thinker: 0,
+                Builder: 0,
+                Creator: 0,
+                Connector: 0,
+            };
+            let total = 0;
+
+            const completedHistory = history.filter(item => item.completed && item.skill_id !== 'NO_SKILLS_LEFT' && item.skill_id !== 'GENERATING');
+
+            completedHistory.forEach(item => {
+                const skill = getSkillById(item.skill_id);
+                if (skill) {
+                    const categoryName = skill.category.charAt(0).toUpperCase() + skill.category.slice(1);
+                    counts[categoryName]++;
+                    total++;
+                }
             });
+
+            const data = Object.keys(counts).map(subject => ({
+                subject,
+                count: counts[subject],
+            }));
+
+            setChartData({ data, total });
             setIsLoading(false);
         }
         processHistory();
@@ -35,7 +55,7 @@ const SkillRadarChart: React.FC<SkillRadarChartProps> = ({ history }) => {
         return (
             <div className="flex flex-col items-center justify-center h-64 text-center">
                 <p className="text-muted-foreground font-semibold">Your skill balance chart is evolving!</p>
-                <p className="text-sm text-muted-foreground mt-1">Complete AI-generated skills to see your new profile grow.</p>
+                <p className="text-sm text-muted-foreground mt-1">Complete some skills to see your profile grow.</p>
             </div>
         )
     }

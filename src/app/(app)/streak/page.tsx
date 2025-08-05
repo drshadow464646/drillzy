@@ -10,7 +10,8 @@ import { Award, CalendarCheck, Flame, PieChart as PieChartIcon, Quote, Sparkles,
 import { format, isSameDay, parseISO } from 'date-fns';
 import { Skeleton } from '@/components/ui/skeleton';
 import type { DayModifiers } from 'react-day-picker';
-import type { Skill, SkillHistoryItem } from '@/lib/types';
+import type { SkillHistoryItem } from '@/lib/types';
+import { getSkillById } from '@/lib/skills-data';
 
 const achievements = [
     { days: 3, label: "3-Day Spark", icon: Flame },
@@ -27,7 +28,6 @@ export default function StreakPage() {
   const [toMonth, setToMonth] = useState<Date | undefined>();
   const [currentSkillText, setCurrentSkillText] = useState("Loading skill...");
   const [selectedSkillInfo, setSelectedSkillInfo] = useState<{date: string, text: string} | null>(null);
-  const [completedSkills, setCompletedSkills] = useState<SkillHistoryItem[]>([]);
   
   useEffect(() => {
     setIsClient(true);
@@ -37,6 +37,11 @@ export default function StreakPage() {
     setFromMonth(twoMonthsAgo);
     setToMonth(now);
   }, []);
+
+  const completedSkills = useMemo(() => {
+    if (!userData) return [];
+    return userData.skillHistory.filter(s => s.completed && s.skill_id !== 'NO_SKILLS_LEFT' && s.skill_id !== 'GENERATING');
+  }, [userData]);
 
   useEffect(() => {
     if (!isClient || !userData || !userData.skillHistory.length) {
@@ -59,12 +64,6 @@ export default function StreakPage() {
     
     setCurrentSkillText(todayHistoryItem.skill_id);
   }, [userData, isClient]);
-
-  useEffect(() => {
-    if(userData) {
-      setCompletedSkills(userData.skillHistory.filter(s => s.completed && s.skill_id !== 'NO_SKILLS_LEFT' && s.skill_id !== 'GENERATING'));
-    }
-  }, [userData])
 
   const completedDays = useMemo(() => {
     if (!isClient || !userData) return [];

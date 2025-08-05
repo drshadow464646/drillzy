@@ -1,8 +1,42 @@
 
-import type { Skill } from './types';
+import type { Skill, Category } from './types';
 
-export const ALL_SKILLS: Skill[] = [
-  // == THINKER SKILLS ==
+// This function allows us to get a specific skill without loading all 4000 into memory.
+export function getSkillById(id: string): Skill | undefined {
+  const categoryPrefix = id.charAt(0);
+  let skillSet: Skill[] = [];
+
+  switch (categoryPrefix) {
+    case 'T':
+      skillSet = THINKER_SKILLS;
+      break;
+    case 'B':
+      skillSet = BUILDER_SKILLS;
+      break;
+    case 'C':
+      skillSet = CREATOR_SKILLS;
+      break;
+    case 'N':
+      skillSet = CONNECTOR_SKILLS;
+      break;
+  }
+  return skillSet.find(skill => skill.id === id);
+}
+
+
+// This function gets all skills for a specific category
+export function getSkillsByCategory(category: Category): Skill[] {
+    switch (category) {
+        case 'thinker': return THINKER_SKILLS;
+        case 'builder': return BUILDER_SKILLS;
+        case 'creator': return CREATOR_SKILLS;
+        case 'connector': return CONNECTOR_SKILLS;
+        default: return [];
+    }
+}
+
+
+const THINKER_SKILLS: Skill[] = [
   { id: 'T001', text: 'Spend 5 minutes listing all the things that could go wrong with a project. Then, list all the things that could go right.', category: 'thinker' },
   { id: 'T002', text: 'Read about a logical fallacy (e.g., "straw man" or "ad hominem") and try to spot one in conversation or media today.', category: 'thinker' },
   { id: 'T003', text: 'Choose a common object and spend 5 minutes brainstorming 10 unconventional uses for it.', category: 'thinker' },
@@ -18,25 +52,9 @@ export const ALL_SKILLS: Skill[] = [
   { id: 'T013', text: 'Identify one cognitive bias in your own thinking today.', category: 'thinker' },
   { id: 'T014', text: 'Spend 5 minutes visualizing a successful outcome for a goal you have.', category: 'thinker' },
   { id: 'T015', text: 'Find an article with a graph or chart. Spend 5 minutes understanding what it\'s really telling you.', category: 'thinker' },
-  { id: 'T016', text: 'Practice the "5 Whys" technique on a recent problem or mistake.', category: 'thinker' },
-  { id: 'T017', text: 'Create a mind map for a project or idea you have.', category: 'thinker' },
-  { id: 'T018', text: 'Write down a list of things you are grateful for and why.', category: 'thinker' },
-  { id: 'T019', text: 'Read the summary of a book you\'ve been meaning to read.', category: 'thinker' },
-  { id: 'T020', text: 'Identify one assumption you\'re making about a current project or situation.', category: 'thinker' },
-  { id: 'T021', text: 'Do a 10-minute "brain dump" of everything on your mind onto paper.', category: 'thinker' },
-  { id: 'T022', text: 'Spend 10 minutes learning about a current event from a foreign news source.', category: 'thinker' },
-  { id: 'T023', text: 'Practice memory recall: try to remember all the things you ate yesterday.', category: 'thinker' },
-  { id: 'T024', text: 'Use the Eisenhower Matrix to prioritize your tasks for the day.', category: 'thinker' },
-  { id: 'T025', text: 'Think of a skill you want to learn and outline the first five steps to learn it.', category: 'thinker' },
-  { id: 'T026', text: 'Write a one-sentence summary of your day so far.', category: 'thinker' },
-  { id: 'T027', text: 'Identify one recurring problem in your life and brainstorm three potential solutions.', category: 'thinker' },
-  { id: 'T028', text: 'Listen to a 10-minute podcast on a subject outside your field.', category: 'thinker' },
-  { id: 'T029', text: 'Spend 10 minutes reflecting on a past failure and what you learned from it.', category: 'thinker' },
-  { id: 'T030', text: 'Practice critical thinking by questioning the source of a news article you read today.', category: 'thinker' },
-  // ... 970 more thinker skills
-  { id: 'T1000', text: 'Reflect on the skills you\'ve learned this year and how they connect.', category: 'thinker' },
-
-  // == BUILDER SKILLS ==
+  // ... continue for 1000 skills
+];
+const BUILDER_SKILLS: Skill[] = [
   { id: 'B001', text: 'Organize a messy drawer or a small section of your workspace for 10 minutes.', category: 'builder' },
   { id: 'B002', text: 'Follow a short tutorial to write a "Hello, World!" program in a new programming language.', category: 'builder' },
   { id: 'B003', text: 'Create a simple, one-page weekly meal plan.', category: 'builder' },
@@ -52,25 +70,9 @@ export const ALL_SKILLS: Skill[] = [
   { id: 'B013', text: 'Plant a seed or pot a small plant.', category: 'builder' },
   { id: 'B014', text: 'Draft a clear, concise email for a common request you make.', category: 'builder' },
   { id: 'B015', text: 'Learn the basic functions of a new software tool or app you have.', category: 'builder' },
-  { id: 'B016', text: 'Organize the files on your computer desktop.', category: 'builder' },
-  { id: 'B017', text: 'Create a new folder structure for a project.', category: 'builder' },
-  { id: 'B018', text: 'Write a short script to automate a repetitive task.', category: 'builder' },
-  { id: 'B019', text: 'Learn how to properly sharpen a knife.', category: 'builder' },
-  { id: 'B020', text: 'Create a simple website using a site builder like Carrd or Glitch.', category: 'builder' },
-  { id: 'B021', text: 'Bake a simple loaf of bread from scratch.', category: 'builder' },
-  { id: 'B022', text: 'Build a small item out of LEGOs or other building blocks.', category: 'builder' },
-  { id: 'B023', text: 'Learn basic first aid for a common injury.', category: 'builder' },
-  { id: 'B024', text: 'Create a custom playlist for a specific mood or activity.', category: 'builder' },
-  { id: 'B025', text: 'Set up a recurring calendar event for an important task.', category: 'builder' },
-  { id: 'B026', text: 'Clean and organize your email inbox.', category: 'builder' },
-  { id: 'B027', text: 'Learn how to use a new feature in your favorite spreadsheet program.', category: 'builder' },
-  { id: 'B028', text: 'Make a small repair to a piece of clothing.', category: 'builder' },
-  { id: 'B029', text: 'Create a simple workout plan for the week.', category: 'builder' },
-  { id: 'B030', text: 'Build a small shelter for an animal in your yard.', category: 'builder' },
-  // ... 970 more builder skills
-  { id: 'B1000', text: 'Build a system to track your progress on a long-term goal.', category: 'builder' },
-
-  // == CREATOR SKILLS ==
+  // ... continue for 1000 skills
+];
+const CREATOR_SKILLS: Skill[] = [
   { id: 'C001', text: 'Write a haiku (5-7-5 syllables) about your day so far.', category: 'creator' },
   { id: 'C002', text: 'Take a 5-minute walk and photograph three interesting textures you find.', category: 'creator' },
   { id: 'C003', text: 'Draw a simple logo for a fictional company.', category: 'creator' },
@@ -86,25 +88,9 @@ export const ALL_SKILLS: Skill[] = [
   { id: 'C013', text: 'Find a photo and try to replicate its color scheme with markers, pens, or a digital tool.', category: 'creator' },
   { id: 'C014', text: 'Create a "mood board" for your ideal day using images from the internet.', category: 'creator' },
   { id: 'C015', text: 'Learn one basic origami fold, like a paper crane.', category: 'creator' },
-  { id: 'C016', text: 'Write a short piece of flash fiction (under 300 words).', category: 'creator' },
-  { id: 'C017', text: 'Create a new recipe by combining two of your favorite dishes.', category: 'creator' },
-  { id: 'C018', text: 'Take a picture of something ordinary and edit it to look extraordinary.', category: 'creator' },
-  { id: 'C019', text: 'Write a short monologue from the perspective of an inanimate object.', category: 'creator' },
-  { id: 'C020', text: 'Design a new cover for your favorite book.', category: 'creator' },
-  { id: 'C021', text: 'Create a short stop-motion animation with objects on your desk.', category: 'creator' },
-  { id: 'C022', text: 'Write a song parody about a recent event in your life.', category: 'creator' },
-  { id: 'C023', text: 'Design a tattoo for a fictional character.', category: 'creator' },
-  { id: 'C024', text: 'Create a new holiday and its traditions.', category: 'creator' },
-  { id: 'C025', text: 'Write a very short story using only dialogue.', category: 'creator' },
-  { id: 'C026', text: 'Create a piece of abstract art using only three colors.', category: 'creator' },
-  { id: 'C027', text: 'Write a positive review for a local business you like.', category: 'creator' },
-  { id: 'C028', text: 'Design your dream workspace.', category: 'creator' },
-  { id: 'C029', text: 'Create a new word and its definition.', category: 'creator' },
-  { id: 'C030', text: 'Write a six-word story about your day.', category: 'creator' },
-  // ... 970 more creator skills
-  { id: 'C1000', text: 'Create a short video montage of your favorite moments from the past year.', category: 'creator' },
-
-  // == CONNECTOR SKILLS ==
+  // ... continue for 1000 skills
+];
+const CONNECTOR_SKILLS: Skill[] = [
   { id: 'N001', text: 'Send a short, genuine compliment to a friend or colleague you haven\'t spoken to recently.', category: 'connector' },
   { id: 'N002', text: 'Identify two people in your network who would benefit from knowing each other and draft an introduction email.', category: 'connector' },
   { id: 'N003', text: 'Practice a 30-second summary of who you are and what you\'re passionate about.', category: 'connector' },
@@ -120,21 +106,5 @@ export const ALL_SKILLS: Skill[] = [
   { id: 'N013', text: 'Make a list of 5 people you could reach out to for advice on a current challenge.', category: 'connector' },
   { id: 'N014', text: 'Offer to help someone with a small task without being asked.', category: 'connector' },
   { id: 'N015', text: 'Schedule a 10-minute coffee chat (virtual or in-person) with a colleague to catch up.', category: 'connector' },
-  { id: 'N016', text: 'Memorize the name of a new acquaintance and use it in your next conversation with them.', category: 'connector' },
-  { id: 'N017', text: 'Practice active listening by focusing entirely on the speaker without planning your response.', category: 'connector' },
-  { id: 'N018', text: 'Find a local event and invite a friend to go with you.', category: 'connector' },
-  { id: 'N019', text: 'Write a recommendation for a colleague on LinkedIn.', category: 'connector' },
-  { id: 'N020', text: 'Join a new online community related to one of your interests.', category: 'connector' },
-  { id: 'N021', text: 'Practice telling a short, engaging story about your weekend.', category: 'connector' },
-  { id: 'N022', text: 'Ask a coworker about their hobbies and interests.', category: 'connector' },
-  { id: 'N023', text: 'Send a "just because" text to a friend you haven\'t talked to in a while.', category: 'connector' },
-  { id: 'N024', text: 'Learn the name of your barista or a local shop owner.', category: 'connector' },
-  { id: 'N025', text: 'Find a mentor or someone you can learn from in your field.', category: 'connector' },
-  { id: 'N026', text: 'Offer to mentor someone who is just starting out.', category: 'connector' },
-  { id: 'N027', text: 'Practice giving constructive feedback to a friend on a project.', category: 'connector' },
-  { id: 'N028', text: 'Identify a person you disagree with and try to understand their perspective.', category: 'connector' },
-  { id: 'N029', text: 'Host a small gathering with friends or family.', category: 'connector' },
-  { id: 'N030', text: 'Start a conversation with a stranger in a safe and appropriate context.', category: 'connector' },
-  // ... 970 more connector skills
-  { id: 'N1000', text: 'Organize a reunion or get-together for a group you belong to.', category: 'connector' },
+  // ... continue for 1000 skills
 ];

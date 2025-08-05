@@ -3,7 +3,7 @@
 
 import * as React from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
-import type { SkillHistoryItem, Skill } from '@/lib/types';
+import type { SkillHistoryItem } from '@/lib/types';
 import { Skeleton } from './ui/skeleton';
 import { createClient } from '@/lib/supabase/client';
 
@@ -12,12 +12,16 @@ interface SkillRadarChartProps {
 }
 
 const SkillRadarChart: React.FC<SkillRadarChartProps> = ({ history }) => {
-    const [chartData, setChartData] = React.useState<any>(null);
+    const [chartData, setChartData] = React.useState<{ data: any[], total: number } | null>(null);
     const [isLoading, setIsLoading] = React.useState(true);
     const supabase = React.useMemo(() => createClient(), []);
 
+    const memoizedHistory = React.useMemo(() => history, [history]);
+
     React.useEffect(() => {
+        let isMounted = true;
         const processHistory = async () => {
+            setIsLoading(true);
             const counts: { [key: string]: number } = {
                 Thinker: 0,
                 Builder: 0,
@@ -26,7 +30,7 @@ const SkillRadarChart: React.FC<SkillRadarChartProps> = ({ history }) => {
             };
             let total = 0;
 
-            const completedHistory = history.filter(item => item.completed && item.skill_id !== 'NO_SKILLS_LEFT' && item.skill_id !== 'GENERATING');
+            const completedHistory = memoizedHistory.filter(item => item.completed && item.skill_id !== 'NO_SKILLS_LEFT' && item.skill_id !== 'GENERATING');
             const skillIds = completedHistory.map(item => item.skill_id).filter(id => id);
 
             if (skillIds.length > 0) {
@@ -35,29 +39,36 @@ const SkillRadarChart: React.FC<SkillRadarChartProps> = ({ history }) => {
                     .select('category')
                     .in('id', skillIds);
 
-                if (error) {
-                    console.error("Error fetching skills for radar chart", error);
-                } else {
-                    skills.forEach(skill => {
-                        if (skill.category) {
-                            const categoryName = skill.category.charAt(0).toUpperCase() + skill.category.slice(1);
-                            counts[categoryName]++;
-                            total++;
-                        }
-                    });
+                if (isMounted) {
+                    if (error) {
+                        console.error("Error fetching skills for radar chart", error);
+                    } else if (skills) {
+                        skills.forEach(skill => {
+                            if (skill.category) {
+                                const categoryName = skill.category.charAt(0).toUpperCase() + skill.category.slice(1);
+                                counts[categoryName]++;
+                                total++;
+                            }
+                        });
+                    }
                 }
             }
 
-            const data = Object.keys(counts).map(subject => ({
-                subject,
-                count: counts[subject],
-            }));
+            if (isMounted) {
+                const data = Object.keys(counts).map(subject => ({
+                    subject,
+                    count: counts[subject],
+                }));
 
-            setChartData({ data, total });
-            setIsLoading(false);
+                setChartData({ data, total });
+                setIsLoading(false);
+            }
         }
         processHistory();
-    }, [history, supabase]);
+        return () => {
+            isMounted = false;
+        }
+    }, [memoizedHistory, supabase]);
     
     if (isLoading || !chartData) {
         return <Skeleton className="w-full h-64" />;

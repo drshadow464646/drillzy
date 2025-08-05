@@ -72,7 +72,7 @@ export default function ProfilePage() {
                             <CardTitle className="text-lg">Skill Balance</CardTitle>
                         </CardHeader>
                         <CardContent>
-                           <SkillRadarChart history={userData.skillHistory} />
+                           <SkillRadarChart history={userData.skillHistory as SkillHistoryItem[]} />
                         </CardContent>
                     </Card>
 
@@ -82,7 +82,7 @@ export default function ProfilePage() {
                             <CardTitle className="text-lg">Category Breakdown</CardTitle>
                         </CardHeader>
                         <CardContent className="h-[250px] flex items-center justify-center">
-                           <SkillCategoryPieChart history={userData.skillHistory} />
+                           <SkillCategoryPieChart history={userData.skillHistory as SkillHistoryItem[]} />
                         </CardContent>
                     </Card>
                 </div>

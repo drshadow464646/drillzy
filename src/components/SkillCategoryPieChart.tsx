@@ -27,11 +27,12 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
 };
 
 const SkillCategoryPieChart: React.FC<SkillCategoryPieChartProps> = ({ history }) => {
-    const [categoryData, setCategoryData] = React.useState<any[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
     const supabase = React.useMemo(() => createClient(), []);
 
-    React.useEffect(() => {
+    const categoryData = React.useMemo(() => {
+        let isMounted = true;
+
         async function processHistory() {
             const counts = {
                 thinker: 0,
@@ -51,9 +52,66 @@ const SkillCategoryPieChart: React.FC<SkillCategoryPieChartProps> = ({ history }
                     .select('category')
                     .in('id', skillIds);
                 
+                if (isMounted) {
+                    if (error) {
+                        console.error("Error fetching skills for pie chart:", error);
+                    } else if (skills) {
+                        skills.forEach(skill => {
+                            if (skill.category) {
+                                counts[skill.category as keyof typeof counts]++;
+                            }
+                        });
+                    }
+                }
+            }
+            
+            const data = Object.entries(counts)
+                .map(([name, value]) => ({ name: name.charAt(0).toUpperCase() + name.slice(1), value }))
+                .filter(item => item.value > 0);
+            
+            if(isMounted) {
+                setIsLoading(false);
+            }
+            return data;
+        }
+
+        // We don't need to return the result of processHistory, we just need to set the state
+        // and the memo will re-evaluate when `history` changes.
+        // For the purpose of memoization, we're making it self-contained.
+        const promise = processHistory();
+
+        return () => {
+          isMounted = false;
+        };
+    }, [history, supabase]);
+
+    const [memoizedData, setMemoizedData] = React.useState<any[]>([]);
+
+    React.useEffect(() => {
+        let isMounted = true;
+
+        async function fetchData() {
+            const counts = {
+                thinker: 0,
+                builder: 0,
+                creator: 0,
+                connector: 0,
+            };
+             const completedSkillItems = history
+              .filter(item => item.completed && item.skill_id !== 'NO_SKILLS_LEFT' && item.skill_id !== 'GENERATING');
+
+            const skillIds = completedSkillItems.map(item => item.skill_id).filter(Boolean);
+
+
+            if (skillIds.length > 0) {
+                const { data: skills, error } = await supabase
+                    .from('skills')
+                    .select('category')
+                    .in('id', skillIds);
+
                 if (error) {
                     console.error("Error fetching skills for pie chart:", error);
-                } else {
+                } else if (skills) {
                     skills.forEach(skill => {
                         if (skill.category) {
                             counts[skill.category as keyof typeof counts]++;
@@ -61,23 +119,29 @@ const SkillCategoryPieChart: React.FC<SkillCategoryPieChartProps> = ({ history }
                     });
                 }
             }
-            
+
             const data = Object.entries(counts)
                 .map(([name, value]) => ({ name: name.charAt(0).toUpperCase() + name.slice(1), value }))
                 .filter(item => item.value > 0);
 
-            setCategoryData(data);
-            setIsLoading(false);
+            if (isMounted) {
+                setMemoizedData(data);
+                setIsLoading(false);
+            }
         }
 
-        processHistory();
+        fetchData();
+
+        return () => {
+            isMounted = false;
+        };
     }, [history, supabase]);
     
     if (isLoading) {
         return <Skeleton className="w-full h-full" />;
     }
     
-    if (categoryData.length === 0) {
+    if (memoizedData.length === 0) {
         return (
             <div className="flex flex-col items-center justify-center h-full text-center">
                 <p className="text-muted-foreground font-semibold">No category data yet.</p>
@@ -98,7 +162,7 @@ const SkillCategoryPieChart: React.FC<SkillCategoryPieChartProps> = ({ history }
         <ResponsiveContainer width="100%" height="100%">
             <PieChart>
                 <Pie
-                    data={categoryData}
+                    data={memoizedData}
                     cx="50%"
                     cy="50%"
                     labelLine={false}
@@ -110,7 +174,7 @@ const SkillCategoryPieChart: React.FC<SkillCategoryPieChartProps> = ({ history }
                     stroke="hsl(var(--background))"
                     strokeWidth={3}
                 >
-                    {categoryData.map((entry, index) => (
+                    {memoizedData.map((entry, index) => (
                         <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
                     ))}
                 </Pie>

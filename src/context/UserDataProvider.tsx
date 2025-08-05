@@ -48,6 +48,7 @@ const calculateStreak = (history: SkillHistoryItem[]): number => {
     return streak;
 };
 
+
 export function UserDataProvider({ children }: { children: ReactNode }) {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);

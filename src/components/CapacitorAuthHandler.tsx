@@ -2,7 +2,8 @@
 'use client';
 
 import { useEffect } from 'react';
-import { App, Capacitor } from '@capacitor/core';
+import { App } from '@capacitor/app';
+import { Capacitor } from '@capacitor/core';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
 

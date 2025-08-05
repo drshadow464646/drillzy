@@ -62,7 +62,8 @@ export default function StreakPage() {
         return;
     }
     
-    setCurrentSkillText(todayHistoryItem.skill_id);
+    const skill = getSkillById(todayHistoryItem.skill_id);
+    setCurrentSkillText(skill?.text || "Skill not found.");
   }, [userData, isClient]);
 
   const completedDays = useMemo(() => {
@@ -80,9 +81,10 @@ export default function StreakPage() {
     const dateStr = format(selectedDay, 'yyyy-MM-dd');
     const historyItem = userData.skillHistory.find(item => item.date === dateStr && item.completed);
     if (historyItem && historyItem.skill_id !== 'NO_SKILLS_LEFT' && historyItem.skill_id !== 'GENERATING') {
+        const skill = getSkillById(historyItem.skill_id);
         setSelectedSkillInfo({
             date: format(selectedDay, 'PPP'),
-            text: historyItem.skill_id
+            text: skill?.text || "Skill not found."
         });
     } else {
         setSelectedSkillInfo(null);
@@ -258,10 +260,12 @@ function CompletedSkillItem({ item }: { item: SkillHistoryItem }) {
     if (!item || !item.skill_id || item.skill_id === 'NO_SKILLS_LEFT' || item.skill_id === 'GENERATING') {
         return null;
     }
+    const skill = getSkillById(item.skill_id);
+    if (!skill) return null;
 
     return (
         <li className="flex flex-col border-b pb-2 last:border-none">
-            <span className="text-sm font-semibold text-foreground">{item.skill_id}</span>
+            <span className="text-sm font-semibold text-foreground">{skill.text}</span>
             <span className="text-xs text-muted-foreground">{format(parseISO(item.date), 'PPP')}</span>
         </li>
     );

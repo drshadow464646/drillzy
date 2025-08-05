@@ -143,9 +143,11 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         }
     }
 
+    const newSkillId = getSkillById(newSkillText)?.id || 'NO_SKILLS_LEFT';
+    
     const newSkillHistoryItem: Omit<SkillHistoryItem, 'user_id'> & { user_id: string } = {
         date: todayStr,
-        skill_id: newSkillText,
+        skill_id: newSkillId,
         completed: false,
         user_id: userData.id
     };

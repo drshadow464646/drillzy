@@ -15,6 +15,7 @@ import CumulativeSkillsChart from '@/components/CumulativeSkillsChart';
 import { checkPermissions, requestPermissions, scheduleDailyNotification } from '@/lib/notifications';
 import { Capacitor } from '@capacitor/core';
 import { useToast } from '@/hooks/use-toast';
+import { getSkillById } from '@/lib/skills-data';
 
 function NotificationPrompt() {
   const [permissionStatus, setPermissionStatus] = useState<'granted' | 'denied' | 'prompt' | 'checking'>('checking');
@@ -106,10 +107,13 @@ export default function HomePage() {
     return userData.skillHistory.find(item => item.date === todayStr);
   }, [userData, isClient]);
   
-  const skillText = todayHistoryItem?.skill_id || '';
+  const skillId = todayHistoryItem?.skill_id;
+  const skill = skillId ? getSkillById(skillId) : null;
+  const skillText = skill?.text || '';
+
   const isCompleted = todayHistoryItem?.completed ?? false;
-  const isNoSkillsLeft = skillText === "NO_SKILLS_LEFT";
-  const isGenerating = !skillText || skillText === "GENERATING";
+  const isNoSkillsLeft = skillId === "NO_SKILLS_LEFT";
+  const isGenerating = !skillId || skillId === "GENERATING";
 
 
   if (isLoading || !userData || !isClient) {

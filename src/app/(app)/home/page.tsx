@@ -102,6 +102,8 @@ export default function HomePage() {
     }
   }, [userData, isLoading, assignSkillForToday, isClient]);
 
+  const skillHistory = useMemo(() => userData?.skillHistory || [], [userData?.skillHistory]);
+
 
   if (isLoading || !userData || !isClient) {
     return (
@@ -183,7 +185,7 @@ export default function HomePage() {
                     <CardTitle className="text-lg">Cumulative Growth</CardTitle>
                 </CardHeader>
                 <CardContent className="h-[300px] flex items-center justify-center pt-4">
-                   <MemoizedCumulativeSkillsChart history={userData.skillHistory as SkillHistoryItem[]} />
+                   <MemoizedCumulativeSkillsChart history={skillHistory} />
                 </CardContent>
             </Card>
 
@@ -193,7 +195,7 @@ export default function HomePage() {
                     <CardTitle className="text-lg">Weekly Progress</CardTitle>
                 </CardHeader>
                 <CardContent className="h-[250px] flex items-center justify-center">
-                   <MemoizedWeeklyProgressChart history={userData.skillHistory as SkillHistoryItem[]} />
+                   <MemoizedWeeklyProgressChart history={skillHistory} />
                 </CardContent>
             </Card>
         </div>
@@ -201,5 +203,3 @@ export default function HomePage() {
     </div>
   );
 }
-
-    

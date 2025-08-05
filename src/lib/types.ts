@@ -1,6 +1,8 @@
 
 export type Category = 'builder' | 'creator' | 'thinker' | 'connector';
 
+export type SystemSkillId = 'GENERATING' | 'NO_SKILLS_LEFT';
+
 export interface Skill {
   id: string;
   text: string;
@@ -10,11 +12,11 @@ export interface Skill {
 export interface SkillHistoryItem {
   user_id: string;
   date: string; // YYYY-MM-DD
-  skill_id: string;
+  skill_id: string | SystemSkillId;
   completed: boolean;
-  // This is the crucial change. 
+  // This is the crucial change.
   // The 'skill' property can now hold the full Skill object from the 'skills' table.
-  skill?: Skill; 
+  skill?: Skill | null;
 }
 
 export interface UserData {

@@ -4,7 +4,7 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import type { UserData, SkillHistoryItem, Skill } from '@/lib/types';
+import type { UserData, SkillHistoryItem, Skill, SystemSkillId } from '@/lib/types';
 import { format, subDays, parseISO } from 'date-fns';
 
 interface UserDataContextType {
@@ -55,7 +55,6 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
   const supabase = useMemo(() => createClient(), []);
 
   const refreshUserData = useCallback(async () => {
-    // Keep isLoading true on first load, but not for background refreshes
     if (!userData) {
       setIsLoading(true);
     }
@@ -68,7 +67,6 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         .eq('id', user.id)
         .single();
       
-      // This is the corrected query. It relies on the foreign key relationship.
       const { data: history, error: historyError } = await supabase
         .from('skill_history')
         .select(`
@@ -82,11 +80,8 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         console.error("Error fetching skill history:", historyError);
       }
       
-      // The history now comes with the full skill object embedded.
       const skillHistory = (history || []).map(item => ({
           ...item,
-          // Supabase returns the joined item as an object, not an array when it's a to-one relationship.
-          // We ensure skill is either the object or null.
           skill: Array.isArray(item.skill) ? item.skill[0] : item.skill,
           date: format(parseISO(item.date), 'yyyy-MM-dd'),
       }));
@@ -95,7 +90,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         id: user.id,
         name: profile?.name || user.user_metadata.name || 'Learner',
         category: profile?.category || null,
-        skillHistory: skillHistory as SkillHistoryItem[], // Cast to the correct type
+        skillHistory: skillHistory as SkillHistoryItem[],
         streakCount: calculateStreak(skillHistory),
       };
 
@@ -135,39 +130,38 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         return;
     }
 
-    // Immediately update UI to show loading state
     setUserData(prev => prev ? ({ ...prev, skillHistory: [{date: todayStr, skill_id: "GENERATING", completed: false, user_id: prev.id, skill: undefined }, ...prev.skillHistory] }) : null);
 
-    const usedSkillIds = userData.skillHistory.map(h => h.skill_id);
+    const usedSkillIds = userData.skillHistory.map(h => h.skill_id).filter(id => id && !['GENERATING', 'NO_SKILLS_LEFT'].includes(id));
     
-    const { data: nextSkill, error: rpcError } = await supabase
+    // The result from an RPC call is an array.
+    const { data: nextSkillResult, error: rpcError } = await supabase
       .rpc('get_next_skill', {
         p_category: userData.category,
         p_used_skill_ids: usedSkillIds
       });
 
-    let newSkillId = "NO_SKILLS_LEFT";
-    if (nextSkill && !rpcError) {
-        newSkillId = nextSkill.id;
+    let newSkillId: string | SystemSkillId = 'NO_SKILLS_LEFT';
+    // Correctly check if the result array is not empty.
+    if (nextSkillResult && nextSkillResult.length > 0 && !rpcError) {
+        newSkillId = nextSkillResult[0].id; // Extract the id from the first element
     } else if (rpcError) {
         console.error("Error fetching next skill:", rpcError);
     }
     
-    const newSkillHistoryItem: Omit<SkillHistoryItem, 'skill'> & { user_id: string } = {
-        date: todayStr,
-        skill_id: newSkillId,
-        completed: false,
-        user_id: userData.id
-    };
-
     const { error } = await supabase
       .from('skill_history')
-      .insert(newSkillHistoryItem);
+      .insert({
+          date: todayStr,
+          skill_id: newSkillId,
+          completed: false,
+          user_id: userData.id
+      });
 
     if (error) {
         console.error("Error assigning new skill:", error);
     } 
-    // Refresh all data to get the newly created skill with its text
+    
     await refreshUserData();
 }, [userData, supabase, refreshUserData]);
 
@@ -179,7 +173,6 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
     if (!userData) return;
     const todayStr = format(new Date(), 'yyyy-MM-dd');
     
-    // Optimistically update the UI
     setUserData(prev => {
         if (!prev) return null;
         const newHistory = prev.skillHistory.map(item => 
@@ -189,7 +182,6 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
         return { ...prev, skillHistory: newHistory, streakCount: newStreak };
     });
 
-    // Update the database
     const { error } = await supabase
         .from('skill_history')
         .update({ completed: true })
@@ -198,7 +190,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
 
     if (error) {
         console.error("Error completing skill:", error);
-        refreshUserData(); // Revert on error
+        refreshUserData();
     }
   }, [userData, supabase, refreshUserData]);
 

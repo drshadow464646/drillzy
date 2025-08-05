@@ -3,9 +3,9 @@
 
 import * as React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
-import type { SkillHistoryItem } from '@/lib/types';
+import type { SkillHistoryItem, Skill } from '@/lib/types';
 import { Skeleton } from './ui/skeleton';
-import { getSkillById } from '@/lib/skills-data';
+import { createClient } from '@/lib/supabase/client';
 
 interface SkillCategoryPieChartProps {
     history: SkillHistoryItem[];
@@ -26,14 +26,14 @@ const renderCustomizedLabel = ({ cx, cy, midAngle, innerRadius, outerRadius, per
   );
 };
 
-
 const SkillCategoryPieChart: React.FC<SkillCategoryPieChartProps> = ({ history }) => {
     const [categoryData, setCategoryData] = React.useState<any[]>([]);
     const [isLoading, setIsLoading] = React.useState(true);
+    const supabase = React.useMemo(() => createClient(), []);
 
     React.useEffect(() => {
         async function processHistory() {
-             const counts = {
+            const counts = {
                 thinker: 0,
                 builder: 0,
                 creator: 0,
@@ -43,12 +43,22 @@ const SkillCategoryPieChart: React.FC<SkillCategoryPieChartProps> = ({ history }
             const completedSkillItems = history
               .filter(item => item.completed && item.skill_id !== 'NO_SKILLS_LEFT' && item.skill_id !== 'GENERATING');
 
-            completedSkillItems.forEach(item => {
-                const skill = getSkillById(item.skill_id);
-                if (skill) {
-                    counts[skill.category]++;
+            const skillIds = completedSkillItems.map(item => item.skill_id);
+
+            if (skillIds.length > 0) {
+                 const { data: skills, error } = await supabase
+                    .from('skills')
+                    .select('category')
+                    .in('id', skillIds);
+                
+                if (error) {
+                    console.error("Error fetching skills for pie chart:", error);
+                } else {
+                    skills.forEach(skill => {
+                        counts[skill.category as keyof typeof counts]++;
+                    });
                 }
-            });
+            }
             
             const data = Object.entries(counts)
                 .map(([name, value]) => ({ name: name.charAt(0).toUpperCase() + name.slice(1), value }))
@@ -59,7 +69,7 @@ const SkillCategoryPieChart: React.FC<SkillCategoryPieChartProps> = ({ history }
         }
 
         processHistory();
-    }, [history]);
+    }, [history, supabase]);
     
     if (isLoading) {
         return <Skeleton className="w-full h-full" />;

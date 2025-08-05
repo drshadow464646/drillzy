@@ -3,9 +3,9 @@
 
 import * as React from 'react';
 import { Radar, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, ResponsiveContainer, Tooltip } from 'recharts';
-import type { SkillHistoryItem } from '@/lib/types';
+import type { SkillHistoryItem, Skill } from '@/lib/types';
 import { Skeleton } from './ui/skeleton';
-import { getSkillById } from '@/lib/skills-data';
+import { createClient } from '@/lib/supabase/client';
 
 interface SkillRadarChartProps {
     history: SkillHistoryItem[];
@@ -13,7 +13,8 @@ interface SkillRadarChartProps {
 
 const SkillRadarChart: React.FC<SkillRadarChartProps> = ({ history }) => {
     const [chartData, setChartData] = React.useState<any>(null);
-     const [isLoading, setIsLoading] = React.useState(true);
+    const [isLoading, setIsLoading] = React.useState(true);
+    const supabase = React.useMemo(() => createClient(), []);
 
     React.useEffect(() => {
         const processHistory = async () => {
@@ -26,15 +27,24 @@ const SkillRadarChart: React.FC<SkillRadarChartProps> = ({ history }) => {
             let total = 0;
 
             const completedHistory = history.filter(item => item.completed && item.skill_id !== 'NO_SKILLS_LEFT' && item.skill_id !== 'GENERATING');
+            const skillIds = completedHistory.map(item => item.skill_id);
 
-            completedHistory.forEach(item => {
-                const skill = getSkillById(item.skill_id);
-                if (skill) {
-                    const categoryName = skill.category.charAt(0).toUpperCase() + skill.category.slice(1);
-                    counts[categoryName]++;
-                    total++;
+            if (skillIds.length > 0) {
+                const { data: skills, error } = await supabase
+                    .from('skills')
+                    .select('category')
+                    .in('id', skillIds);
+
+                if (error) {
+                    console.error("Error fetching skills for radar chart", error);
+                } else {
+                    skills.forEach(skill => {
+                        const categoryName = skill.category.charAt(0).toUpperCase() + skill.category.slice(1);
+                        counts[categoryName]++;
+                        total++;
+                    });
                 }
-            });
+            }
 
             const data = Object.keys(counts).map(subject => ({
                 subject,
@@ -45,7 +55,7 @@ const SkillRadarChart: React.FC<SkillRadarChartProps> = ({ history }) => {
             setIsLoading(false);
         }
         processHistory();
-    }, [history]);
+    }, [history, supabase]);
     
     if (isLoading || !chartData) {
         return <Skeleton className="w-full h-64" />;

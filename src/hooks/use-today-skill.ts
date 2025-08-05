@@ -1,13 +1,16 @@
 
 "use client";
 
-import { useMemo } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useUserData } from '@/context/UserDataProvider';
-import { format, parseISO } from 'date-fns';
-import { getSkillById } from '@/lib/skills-data';
+import { format } from 'date-fns';
+import { createClient } from '@/lib/supabase/client';
+import type { Skill } from '@/lib/types';
 
 export function useTodaySkill() {
     const { userData } = useUserData();
+    const [skill, setSkill] = useState<Skill | null>(null);
+    const supabase = useMemo(() => createClient(), []);
 
     const todayHistoryItem = useMemo(() => {
         if (!userData) return null;
@@ -16,9 +19,31 @@ export function useTodaySkill() {
     }, [userData]);
 
     const skillId = todayHistoryItem?.skill_id;
-    const skill = useMemo(() => skillId ? getSkillById(skillId) : null, [skillId]);
-    const skillText = skill?.text || '';
 
+    useEffect(() => {
+        const fetchSkill = async () => {
+            if (skillId && skillId !== 'NO_SKILLS_LEFT' && skillId !== 'GENERATING') {
+                const { data, error } = await supabase
+                    .from('skills')
+                    .select('*')
+                    .eq('id', skillId)
+                    .single();
+                
+                if (error) {
+                    console.error("Error fetching skill by ID:", error);
+                    setSkill(null);
+                } else {
+                    setSkill(data);
+                }
+            } else {
+                setSkill(null);
+            }
+        };
+
+        fetchSkill();
+    }, [skillId, supabase]);
+
+    const skillText = skill?.text || '';
     const isCompleted = todayHistoryItem?.completed ?? false;
     const isNoSkillsLeft = skillId === "NO_SKILLS_LEFT";
     const isGenerating = !skillId || skillId === "GENERATING";
@@ -31,5 +56,3 @@ export function useTodaySkill() {
         skillId
     };
 }
-
-    

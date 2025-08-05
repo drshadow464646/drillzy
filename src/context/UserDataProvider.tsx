@@ -4,9 +4,8 @@
 import React, { createContext, useContext, useState, ReactNode, useCallback, useMemo, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { createClient } from '@/lib/supabase/client';
-import type { UserData, SkillHistoryItem } from '@/lib/types';
-import { format, subDays, parseISO, isToday } from 'date-fns';
-import { getSkillsByCategory, getSkillById } from '@/lib/skills-data';
+import type { UserData, SkillHistoryItem, Skill } from '@/lib/types';
+import { format, subDays, parseISO } from 'date-fns';
 
 interface UserDataContextType {
   userData: UserData | null;
@@ -32,7 +31,6 @@ const calculateStreak = (history: SkillHistoryItem[]): number => {
     let streak = 0;
     let currentDate = new Date();
     
-    // If today is not completed, start checking from yesterday
     if (!completedDates.has(format(currentDate, 'yyyy-MM-dd'))) {
         currentDate = subDays(currentDate, 1);
     }
@@ -49,7 +47,6 @@ const calculateStreak = (history: SkillHistoryItem[]): number => {
     return streak;
 };
 
-
 export function UserDataProvider({ children }: { children: ReactNode }) {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
@@ -57,7 +54,6 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
   const supabase = useMemo(() => createClient(), []);
 
   const refreshUserData = useCallback(async () => {
-    // Keep it loading on initial fetch
     if (!userData) {
       setIsLoading(true);
     }
@@ -130,15 +126,20 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
 
     setUserData(prev => prev ? ({ ...prev, skillHistory: [{date: todayStr, skill_id: "GENERATING", completed: false, user_id: prev.id }, ...prev.skillHistory] }) : null);
 
-    const userCategorySkills = getSkillsByCategory(userData.category);
-    const usedSkillIds = new Set(userData.skillHistory.map(h => h.skill_id));
+    const usedSkillIds = userData.skillHistory.map(h => h.skill_id);
+    
+    // Remote Procedure Call to get the next skill
+    const { data: nextSkill, error: rpcError } = await supabase
+      .rpc('get_next_skill', {
+        p_category: userData.category,
+        p_used_skill_ids: usedSkillIds
+      });
 
     let newSkillId = "NO_SKILLS_LEFT";
-    for (const skill of userCategorySkills) {
-        if (!usedSkillIds.has(skill.id)) {
-            newSkillId = skill.id;
-            break;
-        }
+    if (nextSkill && !rpcError) {
+        newSkillId = nextSkill.id;
+    } else if (rpcError) {
+        console.error("Error fetching next skill:", rpcError);
     }
     
     const newSkillHistoryItem: Omit<SkillHistoryItem, 'user_id'> & { user_id: string } = {
@@ -215,5 +216,3 @@ export function useUserData() {
   }
   return context;
 }
-
-    

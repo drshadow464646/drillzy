@@ -12,10 +12,12 @@ import Link from 'next/link';
 import LoginMessage from './LoginMessage';
 import { LoginButton } from './LoginButton';
 import { SignupButton } from './SignupButton';
+import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
     const [isPending, startTransition] = useTransition();
     const [loginError, setLoginError] = useState<string | null>(null);
+    const router = useRouter();
 
     const handleLoginSubmit = (formData: FormData) => {
         setLoginError(null);
@@ -23,6 +25,8 @@ export default function LoginPage() {
             const result = await login(formData);
             if (result?.error) {
                 setLoginError(result.error);
+            } else {
+                router.push('/home');
             }
         });
     };

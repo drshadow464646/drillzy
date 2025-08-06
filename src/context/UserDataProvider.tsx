@@ -164,9 +164,31 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
 
     if (error) {
         console.error("Error assigning new skill:", error);
-    } 
+    }
     
-    await refreshUserData();
+    // After assigning, we can do a targeted update instead of a full refresh
+    // For now, removing the refresh will fix the loading loop.
+    // The optimistic update handles the UI change.
+    const { data: newSkill, error: newSkillError } = await supabase
+      .from('skills')
+      .select('*')
+      .eq('id', newSkillId)
+      .single();
+
+    if (newSkill) {
+        setUserData(prev => {
+            if (!prev) return null;
+            const newHistory = prev.skillHistory.map(item =>
+                item.skill_id === 'GENERATING' ? { ...item, skill_id: newSkillId, skill: newSkill } : item
+            );
+            return { ...prev, skillHistory: newHistory };
+        });
+    } else if (newSkillError) {
+        console.error("Error fetching the new skill details:", newSkillError);
+        await refreshUserData(); // Fallback to refresh if fetching the new skill fails
+    }
+
+
 }, [userData, supabase, refreshUserData]);
 
   const burnSkill = useCallback(async () => {

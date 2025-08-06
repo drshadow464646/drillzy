@@ -103,20 +103,25 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
 
 
   useEffect(() => {
-    refreshUserData();
     const { data: authListener } = supabase.auth.onAuthStateChange(
-        (event, session) => {
-            if (event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') {
-                refreshUserData();
-            }
-            if (event === 'SIGNED_OUT') {
-                setUserData(null);
-                router.push('/login');
-            }
+      (event, session) => {
+        if (session) {
+          // If a session exists, user is logged in.
+          refreshUserData();
+        } else if (event === 'SIGNED_OUT') {
+          // If the user signs out, clear data and redirect.
+          setUserData(null);
+          setIsLoading(false);
+          router.push('/login');
+        } else {
+          // If there's no session and it's not a sign-out event (e.g., initial load without a session)
+          setIsLoading(false);
         }
+      }
     );
-     return () => {
-        authListener.subscription.unsubscribe();
+
+    return () => {
+      authListener.subscription.unsubscribe();
     };
   }, [supabase, router, refreshUserData]);
 

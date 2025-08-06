@@ -1,5 +1,8 @@
 
-import { Suspense } from 'react';
+"use client";
+
+import { Suspense, useState, useTransition } from 'react';
+import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -12,6 +15,28 @@ import { LoginButton } from './LoginButton';
 import { SignupButton } from './SignupButton';
 
 export default function LoginPage() {
+    const router = useRouter();
+    const [isPending, startTransition] = useTransition();
+    const [loginError, setLoginError] = useState<string | null>(null);
+
+    const handleLoginSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        setLoginError(null);
+        const formData = new FormData(event.currentTarget);
+
+        startTransition(async () => {
+            const result = await login(formData);
+            if (result.error) {
+                setLoginError(result.error);
+            } else {
+                // On successful login, redirect and then reload the page
+                // This ensures the client-side state is fully re-initialized with the new session
+                router.push('/home');
+                router.refresh();
+            }
+        });
+    };
+
     return (
         <div className="flex flex-col items-center justify-center min-h-screen p-4">
             <div className="flex flex-col items-center text-center mb-8">
@@ -42,7 +67,7 @@ export default function LoginPage() {
                             <CardDescription>Enter your credentials to access your account.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                             <form className="space-y-4" action={login}>
+                             <form className="space-y-4" onSubmit={handleLoginSubmit}>
                                 <div className="space-y-2">
                                     <Label htmlFor="email-login">Email</Label>
                                     <Input id="email-login" name="email" type="email" placeholder="you@example.com" required />
@@ -51,7 +76,8 @@ export default function LoginPage() {
                                     <Label htmlFor="password-login">Password</Label>
                                     <Input id="password-login" name="password" type="password" required />
                                 </div>
-                                <LoginButton />
+                                {loginError && <p className="text-sm text-destructive">{loginError}</p>}
+                                <LoginButton isPending={isPending} />
                             </form>
                             <Button variant="link" size="sm" asChild className="p-0 h-auto w-full mt-2">
                                 <Link href="/forgot-password">

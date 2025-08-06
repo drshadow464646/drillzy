@@ -1,16 +1,17 @@
 
 "use client";
 
-import { useFormStatus } from 'react-dom';
 import { Button } from '@/components/ui/button';
 import { Loader2 } from 'lucide-react';
 
-export function LoginButton() {
-  const { pending } = useFormStatus();
+interface LoginButtonProps {
+    isPending: boolean;
+}
 
+export function LoginButton({ isPending }: LoginButtonProps) {
   return (
-    <Button type="submit" className="w-full" disabled={pending}>
-        {pending ? (
+    <Button type="submit" className="w-full" disabled={isPending}>
+        {isPending ? (
             <>
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                 Logging in...

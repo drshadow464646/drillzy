@@ -17,11 +17,14 @@ export async function login(formData: FormData) {
   });
 
   if (error) {
-    return redirect('/login?message=Invalid credentials');
+    // Return an error message instead of redirecting
+    return { error: 'Invalid credentials' };
   }
 
+  // Revalidate the layout but do not redirect from the server.
+  // The client will handle the redirect.
   revalidatePath('/', 'layout');
-  redirect('/');
+  return { error: null };
 }
 
 export async function signup(formData: FormData) {

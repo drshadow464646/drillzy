@@ -12,21 +12,23 @@ import Link from 'next/link';
 import LoginMessage from './LoginMessage';
 import { LoginButton } from './LoginButton';
 import { SignupButton } from './SignupButton';
-import { useRouter } from 'next/navigation';
 
 export default function LoginPage() {
     const [isPending, startTransition] = useTransition();
     const [loginError, setLoginError] = useState<string | null>(null);
-    const router = useRouter();
 
-    const handleLoginSubmit = (formData: FormData) => {
+    const handleLoginSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
+        event.preventDefault();
+        const formData = new FormData(event.currentTarget);
         setLoginError(null);
+
         startTransition(async () => {
             const result = await login(formData);
             if (result?.error) {
                 setLoginError(result.error);
             } else {
-                router.push('/home');
+                // Force a full page navigation/reload to ensure the new session is picked up.
+                window.location.assign('/home');
             }
         });
     };
@@ -61,7 +63,7 @@ export default function LoginPage() {
                             <CardDescription>Enter your credentials to access your account.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                             <form className="space-y-4" action={handleLoginSubmit}>
+                             <form className="space-y-4" onSubmit={handleLoginSubmit}>
                                 <div className="space-y-2">
                                     <Label htmlFor="email-login">Email</Label>
                                     <Input id="email-login" name="email" type="email" placeholder="you@example.com" required />

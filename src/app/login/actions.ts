@@ -1,12 +1,11 @@
 
 'use server';
 
-import {revalidatePath} from 'next/cache';
 import {redirect} from 'next/navigation';
 import {createClient} from '@/lib/supabase/server';
 import { headers } from 'next/headers';
 
-export async function login(formData: FormData) {
+export async function login(formData: FormData): Promise<{ error: string | null }> {
   const supabase = createClient();
   const email = formData.get('email') as string;
   const password = formData.get('password') as string;
@@ -17,14 +16,11 @@ export async function login(formData: FormData) {
   });
 
   if (error) {
-    // Return an error message instead of redirecting
     return { error: 'Invalid credentials' };
   }
 
-  // On successful login, revalidate the path and redirect from the server.
-  // This ensures the client state is up-to-date when the new page loads.
-  revalidatePath('/', 'layout');
-  redirect('/home');
+  // Return null on success, client will handle redirect.
+  return { error: null };
 }
 
 export async function signup(formData: FormData) {
@@ -56,7 +52,6 @@ export async function signup(formData: FormData) {
   }
 
   // Redirect to a page that tells the user to check their email.
-  revalidatePath('/', 'layout');
   return redirect(
     '/login?message=Check your email to complete the signup process'
   );

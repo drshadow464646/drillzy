@@ -21,10 +21,10 @@ export async function login(formData: FormData) {
     return { error: 'Invalid credentials' };
   }
 
-  // Revalidate the layout but do not redirect from the server.
-  // The client will handle the redirect.
+  // On successful login, revalidate the path and redirect from the server.
+  // This ensures the client state is up-to-date when the new page loads.
   revalidatePath('/', 'layout');
-  return { error: null };
+  redirect('/home');
 }
 
 export async function signup(formData: FormData) {

@@ -2,7 +2,6 @@
 "use client";
 
 import { Suspense, useState, useTransition } from 'react';
-import { useRouter } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -15,24 +14,15 @@ import { LoginButton } from './LoginButton';
 import { SignupButton } from './SignupButton';
 
 export default function LoginPage() {
-    const router = useRouter();
     const [isPending, startTransition] = useTransition();
     const [loginError, setLoginError] = useState<string | null>(null);
 
-    const handleLoginSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
-        event.preventDefault();
+    const handleLoginSubmit = (formData: FormData) => {
         setLoginError(null);
-        const formData = new FormData(event.currentTarget);
-
         startTransition(async () => {
             const result = await login(formData);
-            if (result.error) {
+            if (result?.error) {
                 setLoginError(result.error);
-            } else {
-                // On successful login, redirect and then reload the page
-                // This ensures the client-side state is fully re-initialized with the new session
-                router.push('/home');
-                router.refresh();
             }
         });
     };
@@ -67,7 +57,7 @@ export default function LoginPage() {
                             <CardDescription>Enter your credentials to access your account.</CardDescription>
                         </CardHeader>
                         <CardContent>
-                             <form className="space-y-4" onSubmit={handleLoginSubmit}>
+                             <form className="space-y-4" action={handleLoginSubmit}>
                                 <div className="space-y-2">
                                     <Label htmlFor="email-login">Email</Label>
                                     <Input id="email-login" name="email" type="email" placeholder="you@example.com" required />

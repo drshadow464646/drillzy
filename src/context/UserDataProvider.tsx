@@ -56,9 +56,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
   const supabase = useMemo(() => createClient(), []);
 
   const refreshUserData = useCallback(async () => {
-    if (!userData) {
-      setIsLoading(true);
-    }
+    setIsLoading(true);
     const { data: { user } } = await supabase.auth.getUser();
 
     if (user) {
@@ -101,7 +99,7 @@ export function UserDataProvider({ children }: { children: ReactNode }) {
       setUserData(null);
     }
     setIsLoading(false);
-  }, [supabase, userData]);
+  }, [supabase]);
 
 
   useEffect(() => {

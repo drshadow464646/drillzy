@@ -1,5 +1,4 @@
 
-import {createFactory} from 'react';
 import {createClient} from '@/lib/supabase/server';
 import {NextResponse, type NextRequest} from 'next/server';
 
@@ -67,12 +66,12 @@ export async function updateSession(request: NextRequest) {
        const url = request.nextUrl.clone();
        url.pathname = '/home';
        return NextResponse.redirect(url);
-    } else if (!user && pathname === '/') {
-        // If user is logged out and hits the root, go to login.
-        const url = request.nextUrl.clone();
-        url.pathname = '/login';
-        return NextResponse.redirect(url);
     }
+  } else if (!user && pathname === '/') {
+      // If user is logged out and hits the root, go to login.
+      const url = request.nextUrl.clone();
+      url.pathname = '/login';
+      return NextResponse.redirect(url);
   }
 
 

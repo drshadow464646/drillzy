@@ -63,7 +63,7 @@ export default function ProfilePage() {
                     <CardContent>
                         <div className="flex items-center gap-3 text-lg text-muted-foreground">
                             <Target className="h-5 w-5 text-accent" />
-                            <span>You are a <strong className="text-accent-foreground">{categoryCapitalized}</strong></span>
+                            <span>You are a <strong className="text-accent">{categoryCapitalized}</strong></span>
                         </div>
                     </CardContent>
                 </Card>
